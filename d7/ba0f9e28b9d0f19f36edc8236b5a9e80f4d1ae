@@ -1,0 +1,37 @@
+src/pages/Auth.jsx
+  s_5de23ca1c08ccc::t_cff649970dfa2d 4-14,31,39-40,43-44,46-48,50-88
+server/app.js
+  s_5de23ca1c08ccc::t_4d329a32e06b8b 1-57
+server/index.js
+  s_5de23ca1c08ccc::t_c8b96226116933 2-3,9-10,13
+src/api/client.js
+  s_5de23ca1c08ccc::t_10c09efb80c3e6 30-35
+vercel.json
+  s_5de23ca1c08ccc::t_f519cf8e040a87 1-3,9-12
+  s_5de23ca1c08ccc::t_6f55871819cd0b 4-8
+api/[...path].js
+  s_5de23ca1c08ccc::t_a1debc61c8d138 1-11
+src/index.css
+  s_5de23ca1c08ccc::t_1262180e9f57fe 190-209
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "d7ba0f9e28b9d0f19f36edc8236b5a9e80f4d1ae",
+  "prompts": {},
+  "humans": {
+    "h_80c9974143c35b": {
+      "author": "divyansh.chaudhary <your-personal@email.com>"
+    }
+  },
+  "sessions": {
+    "s_5de23ca1c08ccc": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "8f194660-bf5e-45b0-a846-f2c5cb8de874",
+        "model": "grok-4.5"
+      },
+      "human_author": "divyansh.chaudhary <your-personal@email.com>"
+    }
+  }
+}
