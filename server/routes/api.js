@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import { dbError, dbReady } from '../db.js'
-import { localDateKey } from '../dates.js'
+import { localDateKey, shiftDateKey } from '../dates.js'
 import {
   applyMutation,
   bootstrap,
@@ -13,6 +13,7 @@ import {
   deleteSet,
   getDay,
   getOrCreateWorkout,
+  getRange,
   getSettings,
   listFoods,
   updateFood,
@@ -47,6 +48,16 @@ apiRouter.get('/bootstrap', async (req, res) => {
     const date = String(req.query.date || localDateKey())
     const data = await bootstrap(req.userId, date)
     res.json(data)
+  } catch (err) {
+    sendError(res, err)
+  }
+})
+
+apiRouter.get('/range', async (req, res) => {
+  try {
+    const to = String(req.query.to || localDateKey())
+    const from = String(req.query.from || shiftDateKey(to, -6))
+    res.json(await getRange(req.userId, from, to))
   } catch (err) {
     sendError(res, err)
   }

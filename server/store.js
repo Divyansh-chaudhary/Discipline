@@ -361,6 +361,34 @@ export async function getDay(userId, date) {
   return { date, logs, workout, sets }
 }
 
+/** Logs and lifts for an inclusive YYYY-MM-DD span, grouped by date. */
+export async function getRange(userId, from, to) {
+  const [logs, workouts] = await Promise.all([
+    FoodLog.find({ userId, date: { $gte: from, $lte: to } }).sort({ date: 1, createdAt: 1 }).lean(),
+    Workout.find({ userId, date: { $gte: from, $lte: to } }).lean(),
+  ])
+  const workoutIds = workouts.map((row) => String(row._id))
+  const sets = workoutIds.length
+    ? await WorkoutSet.find({ userId, workoutId: { $in: workoutIds } }).sort({ createdAt: 1 }).lean()
+    : []
+
+  const dateByWorkout = new Map(workouts.map((row) => [String(row._id), row.date]))
+  const days = {}
+  const bucket = (date) => {
+    if (!days[date]) days[date] = { logs: [], workout: null, sets: [] }
+    return days[date]
+  }
+
+  for (const workout of workouts) bucket(workout.date).workout = toClient(workout)
+  for (const log of logs) bucket(log.date).logs.push(toClient(log))
+  for (const set of sets) {
+    const date = dateByWorkout.get(String(set.workoutId))
+    if (date) bucket(date).sets.push(toClient(set))
+  }
+
+  return { from, to, days }
+}
+
 export async function bootstrap(userId, date) {
   await ensureUserDefaults(userId)
   const [settings, customFoods, workoutTypes, day, discipline] = await Promise.all([

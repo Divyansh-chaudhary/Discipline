@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { BusyButton, Spinner } from '../components/BusyButton.jsx'
 import { FoodFields, emptyFood, parseFoodFields } from '../components/FoodFields.jsx'
 import { MacroBars, RemainingHero } from '../components/MacroBars.jsx'
@@ -9,11 +10,44 @@ import { totalsFromLogs } from '../db/index.js'
 import { useBusy, useBusyKey } from '../lib/busy.js'
 import { formatPrettyDate, localDateKey } from '../lib/dates.js'
 import { pulseFromState } from '../lib/discipline.js'
-import { fmtCal, fmtG, round1 } from '../lib/format.js'
-import { useData, useDay } from '../sync/DataContext.jsx'
+import { fmtCal, fmtG, round0, round1 } from '../lib/format.js'
+import { lastNDates, weekReview } from '../lib/week.js'
+import { useData, useDateRange, useDay } from '../sync/DataContext.jsx'
 
 const MIN_SERVINGS = 1
 const SERVING_STEP = 1
+
+function WeekBalanceCard({ today, targets }) {
+  const dates = useMemo(() => lastNDates(today, 7), [today])
+  const { rows, loading } = useDateRange(dates)
+  const review = weekReview({ rows, targets, today })
+  const { average, allowance, loggedDays, trackedBefore } = review
+  const spentToday = review.dayRows.find((row) => row.date === today)?.totals.calories || 0
+  const leftToday = round0(allowance.calories - spentToday)
+
+  return (
+    <section className="card week-balance">
+      <div className="page-head-row">
+        <div>
+          <p className="tiny">7-day average</p>
+          <p className="path-count">
+            {loading && !loggedDays ? '—' : `${fmtCal(average.calories)} kcal`}
+          </p>
+        </div>
+        <Link className="chip" to="/history?view=week">
+          Balance ›
+        </Link>
+      </div>
+      <p className="tiny" style={{ marginTop: 8 }}>
+        {trackedBefore === 0
+          ? `Target ${fmtCal(targets.calories)} kcal a day.`
+          : leftToday >= 0
+            ? `${leftToday} kcal left today to even out the week.`
+            : `${Math.abs(leftToday)} kcal over the evened-out budget for today.`}
+      </p>
+    </section>
+  )
+}
 
 function cleanQuantity(value, delta = 0) {
   return round1(Math.max(MIN_SERVINGS, (Number(value) || MIN_SERVINGS) + delta))
@@ -129,6 +163,8 @@ export function Today() {
         <RemainingHero totals={totals} targets={settings} />
         <MacroBars totals={totals} targets={settings} includeCalories={false} />
       </section>
+
+      <WeekBalanceCard today={date} targets={settings} />
 
       <TodayPathCard pulse={pulse} xp={discipline.profile?.totalXp || 0} streaks={discipline.streaks} />
 

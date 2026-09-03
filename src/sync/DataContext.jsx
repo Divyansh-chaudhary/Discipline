@@ -174,6 +174,28 @@ export function DataProvider({ children }) {
     [],
   )
 
+  const loadRange = useCallback(async (from, to) => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      throw new Error('Offline')
+    }
+    const data = await api(`/api/range?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`)
+    setDays((prev) => {
+      const next = { ...prev }
+      for (const [date, day] of Object.entries(data.days || {})) {
+        next[date] = {
+          logs: day.logs || [],
+          workout: day.workout || null,
+          sets: day.sets || [],
+          loaded: true,
+          unavailable: false,
+          loading: false,
+        }
+      }
+      return next
+    })
+    return data
+  }, [])
+
   useEffect(() => {
     let cancelled = false
     api('/api/auth/me')
@@ -574,6 +596,7 @@ export function DataProvider({ children }) {
       logout,
       refresh,
       loadDay,
+      loadRange,
       saveTargets,
       addLog,
       removeLog,
@@ -609,6 +632,7 @@ export function DataProvider({ children }) {
       logout,
       refresh,
       loadDay,
+      loadRange,
       saveTargets,
       addLog,
       removeLog,
@@ -651,4 +675,40 @@ export function useDay(date) {
     online,
     queued,
   }
+}
+
+/** Loads an inclusive date span in one request and returns each day in order. */
+export function useDateRange(dates) {
+  const { days, loadRange } = useData()
+  const from = dates[0]
+  const to = dates[dates.length - 1]
+  const [status, setStatus] = useState({ loading: true, unavailable: false })
+
+  useEffect(() => {
+    let cancelled = false
+    setStatus({ loading: true, unavailable: false })
+    loadRange(from, to)
+      .then(() => {
+        if (!cancelled) setStatus({ loading: false, unavailable: false })
+      })
+      .catch(() => {
+        if (!cancelled) setStatus({ loading: false, unavailable: true })
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [from, to, loadRange])
+
+  const rows = dates.map((date) => {
+    const day = days[date] || emptyDay()
+    return {
+      date,
+      logs: day.logs || [],
+      workout: day.workout || null,
+      sets: day.sets || [],
+      loaded: Boolean(day.loaded),
+    }
+  })
+
+  return { rows, loading: status.loading, unavailable: status.unavailable }
 }
