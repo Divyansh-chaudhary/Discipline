@@ -1,0 +1,30 @@
+server/app.js
+  s_5de23ca1c08ccc::t_308fe5bd53e95c 38-58,60-66,76,102-104
+  s_5de23ca1c08ccc::t_40d524f899241a 73
+  s_5de23ca1c08ccc::t_ffc0da6f1b9e43 11-33,59,67-72,74-75,81-84,86
+vercel.json
+  s_5de23ca1c08ccc::t_a6ade03878c78e 5-7,11
+api/index.js
+  s_5de23ca1c08ccc::t_bffcebd494c340 1-4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "edb6637aa223441f330dd26a63ea686b0c164e98",
+  "prompts": {},
+  "humans": {
+    "h_80c9974143c35b": {
+      "author": "divyansh.chaudhary <your-personal@email.com>"
+    }
+  },
+  "sessions": {
+    "s_5de23ca1c08ccc": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "8f194660-bf5e-45b0-a846-f2c5cb8de874",
+        "model": "grok-4.5"
+      },
+      "human_author": "divyansh.chaudhary <your-personal@email.com>"
+    }
+  }
+}
