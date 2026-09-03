@@ -1,0 +1,321 @@
+src/pages/Today.jsx
+  s_fa49054c191e91::t_fa7955d36f70f5 1-3,5,8,10,12,20-21,25,27-29,31-40,42-45,47-51,53-64,71,114-118,120-121,124-125,128-141,156,165,170-183,185-189,207-209,253-259
+  s_5de23ca1c08ccc::t_01e526987ca4e6 68-69,75-77,80-93,97,100
+  s_5de23ca1c08ccc::t_2642146997e466 211-252
+  s_8e19f6adc3260d::t_4dde475144399d 184
+  s_c0b6bdf37a264f::t_19f4c5a1ebbffe 127
+  s_5de23ca1c08ccc::t_d88a31f07374a3 13-14
+  s_8e19f6adc3260d::t_3fd2140ed3608a 46
+  s_5de23ca1c08ccc::t_3bdd45391f6699 15-19
+  s_c0b6bdf37a264f::t_fcdbf4add3c628 4,9
+  s_379c84fce86b49::t_ce72dccffc5ec3 6-7,11,22-24,26,52,122,126,142-155,157-164,166-169
+  s_5de23ca1c08ccc::t_51b4fdf32b6294 30,41,65-67,70,72-74,78-79,96,98-99,101-113,119,123,190-196,198-199,203-206,210
+  s_5de23ca1c08ccc::t_9c3665bb74a0d3 94-95
+  s_5de23ca1c08ccc::t_7d8d713a92b75d 197,200-202
+server/disciplineShared.js
+  s_379c84fce86b49::t_21a1c0684eef95 1-93
+server/dates.js
+  s_379c84fce86b49::t_926d62c52739a2 1-57
+src/components/PulseCard.jsx
+  s_c0b6bdf37a264f::t_01d3b2d6e98b73 1-105
+src/components/BottomNav.jsx
+  s_fa49054c191e91::t_84bac34a4a1e61 1-7,9-72
+  s_c0b6bdf37a264f::t_100cf2f984a47a 8
+  s_c0b6bdf37a264f::t_0065184e79811d 73-80
+server/routes/auth.js
+  s_379c84fce86b49::t_7d0968776e617f 1,60,65-66
+  s_379c84fce86b49::t_52ada9c795d451 2-20,23-59,61-64,67
+  s_5de23ca1c08ccc::t_feaae962ab1dce 21-22
+server/routes/api.js
+  s_379c84fce86b49::t_9f6f0e6358dc21 1-238
+public/favicon.svg
+  s_fa49054c191e91::t_57c57ef2f23bd3 1,7
+  s_ffac8fbcf66c0f::t_846fe756b15c9f 2-6
+src/sync/outbox.js
+  s_379c84fce86b49::t_242778943bfe1c 6
+  s_379c84fce86b49::t_c0f1a014e38dd8 64-67
+  s_379c84fce86b49::t_0943782bf0f7a4 1-5,7-56,58-63,68-78
+  s_379c84fce86b49::t_32596dcbf38ec0 57
+src/components/SyncChip.jsx
+  s_5de23ca1c08ccc::t_7f74a1bc519525 1
+  s_379c84fce86b49::t_c58c263edc7c57 2-14,16,25-44
+  s_5de23ca1c08ccc::t_1609f60b2f75f5 17
+  s_5de23ca1c08ccc::t_a8950eb6779997 15,18-24
+src/lib/workouts.js
+  s_5de23ca1c08ccc::t_2d5227edcd88f6 1-54
+src/pages/Foods.jsx
+  s_8e19f6adc3260d::t_9553e485d3df64 46
+  s_fa49054c191e91::t_ee925eb729f9f9 1-3,5-7,9-10,13-44,47-50,62-89,91-103,105-118,120-143,145-208,210-220
+  s_379c84fce86b49::t_aad14bde90187c 4,8,11-12,45,51-61,90,104,119,144,209
+src/pages/Auth.jsx
+  s_379c84fce86b49::t_cc897a29e7df68 1-82
+src/pages/WorkoutTypes.jsx
+  s_5de23ca1c08ccc::t_aa6039bfb13e66 1-85
+server/json.js
+  s_379c84fce86b49::t_b77d4228ca5db6 4-9
+  s_379c84fce86b49::t_bedce662d7428d 1-3,10-18
+server/index.js
+  s_379c84fce86b49::t_b37a918c1abed6 22
+  s_379c84fce86b49::t_8669603208dfd9 1-21,23-58
+README.md
+  s_fa49054c191e91::t_6ff7562e23d0cd 2,4,6,12,14,18,20
+  s_379c84fce86b49::t_33edec6983ac52 1,3,5,7-11,13,15-17,19,21
+server/store.js
+  s_5de23ca1c08ccc::t_86667d83b2f753 4-13
+  s_5de23ca1c08ccc::t_11055f1332069a 246,258-263,265,268-274,276-289,292-295,298-299,302-320,323,326-332,337-352
+  s_5de23ca1c08ccc::t_5ebc809bf4e74d 249,264,266-267,275,290-291,296-297,300-301,334
+  s_5de23ca1c08ccc::t_0722965c594fd6 366,369,373
+  s_5de23ca1c08ccc::t_3ff63b952be9ae 407-412
+  s_379c84fce86b49::t_b3b015fa57733c 48,53
+  s_379c84fce86b49::t_b8b6ee01369ff3 1-3,14-47,49-52,54-245,356-365,367-368,370-372,374-406,413-419
+  s_5de23ca1c08ccc::t_ca0f69c4f35d79 247-248,250-257,321-322,324-325,333,335-336,353-355
+vite.config.js
+  s_fa49054c191e91::t_85cd9cfbdb06ca 3,6-16,22-46,48-50,63-78
+  s_379c84fce86b49::t_63b0aff2d837a5 19,47,79-86
+  s_ffac8fbcf66c0f::t_6d3fe49025446a 51-62
+  s_d4ff74dd241cfd::t_f05c5deb6816d9 17-18
+  s_fa49054c191e91::t_6ff7562e23d0cd 1-2,4-5,87
+  s_ffac8fbcf66c0f::t_730589bbfb3eee 20-21
+src/pages/History.jsx
+  s_379c84fce86b49::t_15f4fc372717ec 3-4,7,11-12,18,30-37,39-49,51,53-55,57-58,60-76
+  s_fa49054c191e91::t_4b90b08e12d311 1-2,5-6,8-10,13-17,19-29,38,50,52,56,59,77-88
+src/pages/WorkoutSplitDetail.jsx
+  s_5de23ca1c08ccc::t_0fbbc061f10833 115
+  s_5de23ca1c08ccc::t_835c4e52930e0b 1-114,116-212
+src/index.css
+  s_ffac8fbcf66c0f::t_56ce8d26dee361 878-879
+  s_5de23ca1c08ccc::t_32f0a6e3e33259 972,979-981,983-989,992-998,1000-1020
+  s_379c84fce86b49::t_5cfdab2a9804a2 143-150
+  s_5de23ca1c08ccc::t_b0dbe4bee40a7f 1,4-20,29-30,42-55,67,93-94,151-166,235-237,350-373,404-415,419,422,424,820
+  s_379c84fce86b49::t_725b19f679af1f 167,169-190
+  s_ffac8fbcf66c0f::t_160902364a437a 31,34-36,56-66,68-69
+  s_ffac8fbcf66c0f::t_8be3fe40f98332 348-349
+  s_fa49054c191e91::t_da4830b284d291 32-33,37-38,73-76,79-82,87-88,91-92,96-99,102-129,133,138-140,168,192-196,198-209,212,214-219,222-223,226-228,232-234,238-240,244-248,251-270,272-303,305-315,317-342,344-346,460-481,483-505,507-516,520-526,528,532-573,575,578-581,584-585,611-616,646-651,814,817,821,823-824,828,830-840,842,844-849,852-854,857-861,866-873,882-883,885-888,890-901,905-908,910,914-918,920-922,925-928,930-953,963-968,1021-1032,1034-1035,1038-1053
+  s_ffac8fbcf66c0f::t_764cf13cc6bf9d 241-243
+  s_8e19f6adc3260d::t_8333f03ac1b23c 3,39-41,70-72,83-86,95,132,221,229,231,304,343,347,506,518,527,529,574,829,851,862-864,877,880-881,884,919,959,1033
+  s_c0b6bdf37a264f::t_c50740f756a4cc 855-856
+  s_5de23ca1c08ccc::t_68704e593ed23a 889
+  s_ffac8fbcf66c0f::t_5a232c37882537 923-924
+  s_ffac8fbcf66c0f::t_7b39ec42d0b5b0 1036-1037
+  s_ffac8fbcf66c0f::t_e5c6d681573fb6 197,230,271,601,850,929
+  s_fa49054c191e91::t_6ff7562e23d0cd 2,77-78,89-90,100-101,130,134-137,141-142,191,210-211,213,249-250,482,1054
+  s_fa49054c191e91::t_2a305b504022ca 954-958,960-962
+  s_ffac8fbcf66c0f::t_3bd269b3d456e4 517,519
+  s_5de23ca1c08ccc::t_620bc4d293ed89 902-904,909,911-913
+  s_5de23ca1c08ccc::t_f5d14bb6982e96 220
+  s_ffac8fbcf66c0f::t_15cce93e858418 224-225
+  s_5de23ca1c08ccc::t_af442b72a654a3 874-876
+  s_ffac8fbcf66c0f::t_db7ebf8474f5bd 576-577
+  s_5de23ca1c08ccc::t_8918aa404073ab 374,381,385-386,388-401
+  s_ffac8fbcf66c0f::t_a47acfc5252dcf 316
+  s_ffac8fbcf66c0f::t_8a5faf646ffe30 582-583
+  s_ffac8fbcf66c0f::t_af94b9e27ef593 825-827
+  s_5de23ca1c08ccc::t_61053bd5505518 865
+  s_c0b6bdf37a264f::t_10764a0c581965 652-738,740,743-779,782-813,822
+  s_c0b6bdf37a264f::t_19aa88d15029ee 841,843
+  s_ffac8fbcf66c0f::t_07a0ea019ddc8f 1055-1064
+  s_ffac8fbcf66c0f::t_360ebb104e2649 21-28
+  s_ffac8fbcf66c0f::t_954b6727f10342 131
+  s_5de23ca1c08ccc::t_4b95a0ecaf3c98 617-645,969-971,973-978,982,990-991,999
+  s_ffac8fbcf66c0f::t_1503b10eacf3a5 780-781
+  s_5de23ca1c08ccc::t_34eabeb50aac4d 375-380,382-384,387,402-403
+  s_fa49054c191e91::t_7ccd2447283e70 815-816,818-819
+  s_ffac8fbcf66c0f::t_fb02eb5676e6b1 739,741-742
+  s_ffac8fbcf66c0f::t_0d525e8ceee9ad 530-531
+  s_5de23ca1c08ccc::t_1cd5eded92401e 416-418,420-421,423,425-459
+  s_8e19f6adc3260d::t_631f60628acb8f 586-600,602-610
+.env.example
+  s_fa49054c191e91::t_3649a8eb84c1cb 6,8
+  s_379c84fce86b49::t_cd279124097f3c 1-5,7
+server/auth.js
+  s_379c84fce86b49::t_fba946f32f6d71 1-63
+src/pages/Workout.jsx
+  s_5de23ca1c08ccc::t_bc5a30d70afeb8 1,3-5,7-11,13-20,22-27,30-82,92-93,105,142-145,147-151,153-163,168-181,185-197,199-202,206-210,218-236,240-242,250-255
+  s_5de23ca1c08ccc::t_9b3af2cb36a58e 2,6,12,21,28-29,83-91,94-104,106-141,146,152,164-167,182-184,198,203-205,211-217,237-239,243-249
+src/api/client.js
+  s_379c84fce86b49::t_70cd05604d67d2 1-33
+scripts/generate-icons.py
+  s_fa49054c191e91::t_d791ea5ad63a8f 89
+  s_fa49054c191e91::t_de213fecda3967 1-88,90-124
+src/lib/dates.js
+  s_fa49054c191e91::t_18db3a1518d46b 1-36
+  s_c0b6bdf37a264f::t_6e83d6f9617c29 37-75
+scripts/verify.mjs
+  s_fa49054c191e91::t_df2a0507e5c3e0 65
+  s_fa49054c191e91::t_603ed1838ed1ac 105,107,111-112,115,119
+  s_fa49054c191e91::t_99b9e02aca785a 68
+  s_fa49054c191e91::t_d5cda6a0deada9 25-26,28,35-36
+  s_fa49054c191e91::t_f03126b199a499 48-49
+  s_5de23ca1c08ccc::t_afc59c93d97d6c 55
+  s_fa49054c191e91::t_93e02aa5e91499 1-24,27,29-34,37-47,50-54,57-64,66-67,69,90-104,106,108-110,113-114,116-118,120-122,131-140
+  s_5de23ca1c08ccc::t_65eec41be1cc4a 56
+  s_5de23ca1c08ccc::t_096e9ef67b8064 70-81,83-89
+  s_5de23ca1c08ccc::t_16366688f862c1 82
+  s_fa49054c191e91::t_2da66946bb32b2 123-130
+src/sync/engine.js
+  s_379c84fce86b49::t_3d0a7b962f892d 1-24,26,28-32,34-42,44-69,71-78
+  s_379c84fce86b49::t_9bdec1f776d9dd 25,27,33,43,70
+src/main.jsx
+  s_379c84fce86b49::t_9e53473fd1d168 6,14-16
+  s_fa49054c191e91::t_6ff7562e23d0cd 1-2,5,10-12,18-19
+  s_fa49054c191e91::t_7e8add3dba12d8 3-4,7-9,13,17
+.gitignore
+  s_fa49054c191e91::t_6ff7562e23d0cd 1-13,17-27
+  s_fa49054c191e91::t_29bbb90ef6201a 14-16
+src/components/Sheet.jsx
+  s_fa49054c191e91::t_a3ac0394e6c1fc 1-32
+server/db.js
+  s_379c84fce86b49::t_3a8198d1ca1110 1-16
+.oxlintrc.json
+  s_fa49054c191e91::t_6ff7562e23d0cd 1-8
+index.html
+  s_d4ff74dd241cfd::t_8ca0d46d709e92 29
+  s_fa49054c191e91::t_6ff7562e23d0cd 1-5,30-35
+  s_d4ff74dd241cfd::t_ef28b8c0385f8d 23
+  s_379c84fce86b49::t_995b2bd7953579 27
+  s_ffac8fbcf66c0f::t_4a3de9f13bee7d 11-19
+  s_8e19f6adc3260d::t_27b1687385e1f7 10,22
+  s_fa49054c191e91::t_61b5eba7b7d8a0 6-9,20-21,24-26,28
+src/lib/usda.js
+  s_fa49054c191e91::t_c8f14b1d988a08 1-86,88-92,95-113,116-119
+  s_379c84fce86b49::t_6b1cfde4e131f9 87,93-94,114-115
+src/components/MacroBars.jsx
+  s_5de23ca1c08ccc::t_bb3ac249495dbc 10-11,14
+  s_fa49054c191e91::t_1f11ec7609f38c 1-9,12-13,15-45
+src/lib/format.js
+  s_8e19f6adc3260d::t_e8e448552e7ad0 17-26
+  s_fa49054c191e91::t_ae47fbc8d89fd8 1-16
+src/components/FoodFields.jsx
+  s_fa49054c191e91::t_87f45dc6ae4078 3-15,22-56,66,68-71,73-75,85-88,90,94-97,104-105
+  s_8e19f6adc3260d::t_9ce4ad3a943b11 1-2,16-21,57-65,67,72,76-84,89,91-93,98-103
+server/discipline.js
+  s_379c84fce86b49::t_3f1840a5777487 1-236
+src/sync/DataContext.jsx
+  s_5de23ca1c08ccc::t_09a918322cf5eb 497-502,504-505,508-521,523,526,529-545
+  s_5de23ca1c08ccc::t_86022709c29a98 503,506-507,522,524-525,527-528,546-550
+  s_5de23ca1c08ccc::t_4d17790bdba4b7 565,588-591
+  s_5de23ca1c08ccc::t_fd31ea6c8e4785 600,623-626
+  s_379c84fce86b49::t_143b9d0cca2ae9 51,53
+  s_379c84fce86b49::t_3a669e450129b2 1-8,10-12,27-41,43-50,52,55,57,67-109,111-180,184,194-203,208,210-216,221-224,228-272,274-279,281-290,292-294,296-374,376,378-379,381-386,394-496,551-560,562-564,566-587,592-595,597-599,601-622,627-654
+  s_379c84fce86b49::t_9cac4584a205e5 561,596
+  s_379c84fce86b49::t_b28985652d0ad4 375
+  s_379c84fce86b49::t_33657895def3d0 58-63
+  s_379c84fce86b49::t_a83aed4bc8a7a0 9,13-26
+  s_5de23ca1c08ccc::t_936131f7d11500 42
+  s_5de23ca1c08ccc::t_34f3cf1c4839a2 54
+  s_379c84fce86b49::t_439ea078a31788 56
+  s_379c84fce86b49::t_2f26b41834cdca 181-183,185-193,204-207,209,217-220,225-227
+  s_379c84fce86b49::t_41095b7167d0c9 377,380,387-393
+  s_379c84fce86b49::t_641c1f5cbfaabd 273,280,291
+  s_5de23ca1c08ccc::t_aa7b289eac35c2 110
+  s_5de23ca1c08ccc::t_ad4bcfea132bc9 295
+  s_5de23ca1c08ccc::t_152385dd64f427 64-66
+src/pages/WorkoutTypeDetail.jsx
+  s_5de23ca1c08ccc::t_0d663d13781c84 88
+  s_5de23ca1c08ccc::t_9a3cff85e29f9d 1-87,89-130
+server/models.js
+  s_379c84fce86b49::t_f9d489965a8cc8 26,44,57,63,68,74,83
+  s_379c84fce86b49::t_da2d9529411d52 1-25,27-43,45-56,58-62,64-67,69-73,75-82,84-86,126-178,181-184
+  s_5de23ca1c08ccc::t_7eb1f22503cc45 88,110-112,115-116,124-125
+  s_5de23ca1c08ccc::t_bf1b8609ad09c9 179-180
+  s_5de23ca1c08ccc::t_13ccf463d95632 87,89-109,113-114,117-123
+src/lib/discipline.js
+  s_c0b6bdf37a264f::t_6065a201b4fa45 1-10,12-86
+  s_c0b6bdf37a264f::t_f23950a5653bc7 11
+src/lib/online.js
+  s_fa49054c191e91::t_58bfb0d092d22d 1-20
+src/pages/Settings.jsx
+  s_fa49054c191e91::t_647e170fcdde81 1,7-8,10-16,18,23-24,26-41,49-57,61,64,69,78-82,87-88,92-95,106-114,116-119,121-161
+  s_c0b6bdf37a264f::t_de1d98744a13a7 96-97,99-105
+  s_d4ff74dd241cfd::t_82c771e37d542a 115
+  s_c0b6bdf37a264f::t_ab7e4e18e87be7 2
+  s_8e19f6adc3260d::t_b6603db37d922b 71-77,83-86,89-91
+  s_8e19f6adc3260d::t_54f648593f57b1 5
+  s_379c84fce86b49::t_07eb927b83c4ea 3-4,6,9,17,19-22,25,58-60,62-63,65-68,70,98,120
+  s_8e19f6adc3260d::t_781b06b31970e5 42-48
+src/pages/Path.jsx
+  s_5de23ca1c08ccc::t_bd34168defc2ce 1
+  s_379c84fce86b49::t_914d258709fd89 3-4,14,18-19,21-22,24,31,64
+  s_5de23ca1c08ccc::t_6bbf4184b6cf07 27
+  s_c0b6bdf37a264f::t_8aeb6addd875d8 2,5-13,15-17,20,23,25-26,28-30,32-63,65-70,78,97-108
+  s_5de23ca1c08ccc::t_79743d4e0850e2 71-77,79-96
+src/App.jsx
+  s_fa49054c191e91::t_6ff7562e23d0cd 17,47,64-65
+  s_c0b6bdf37a264f::t_7a6c095d0c8b25 6,58
+  s_fa49054c191e91::t_bcb02140a6b929 1-2,4-5,7-9,14-15,48,50-53,57,59-63
+  s_5de23ca1c08ccc::t_655e00ed0cb029 10-12
+  s_5de23ca1c08ccc::t_ab46089cbf23ad 54-56
+  s_379c84fce86b49::t_64ecd6cc9ed0eb 3,13,16,18-46,49
+package.json
+  s_d4ff74dd241cfd::t_4114cd3ed6b520 2
+  s_379c84fce86b49::t_eb957c5e52180b 7-10,16-23,32
+  s_fa49054c191e91::t_6ff7562e23d0cd 1,3-6,11-15,24,27-31,33,36-37
+  s_fa49054c191e91::t_8fa83109cfcc9a 25-26
+  s_fa49054c191e91::t_3368881a107a0b 34-35
+src/db/index.js
+  s_fa49054c191e91::t_9fec59f846c486 1-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "c6778a682dee74f8e8488c610f31769ff1c0b3d2",
+  "prompts": {},
+  "sessions": {
+    "s_379c84fce86b49": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "3c6c6ccc-9e2f-40ed-bdbe-c34af792f5cf",
+        "model": "cursor-grok-4.6-high-fast"
+      },
+      "human_author": "divyansh.chaudhary <divyansh.chaudhary@telekom-digital.com>"
+    },
+    "s_5de23ca1c08ccc": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "8f194660-bf5e-45b0-a846-f2c5cb8de874",
+        "model": "claude-opus-5"
+      },
+      "human_author": "divyansh.chaudhary <divyansh.chaudhary@telekom-digital.com>"
+    },
+    "s_8e19f6adc3260d": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "d07d389d-9364-4676-a1b8-ea0977ef6efb",
+        "model": "cursor-grok-4.6-high-fast"
+      },
+      "human_author": "divyansh.chaudhary <divyansh.chaudhary@telekom-digital.com>"
+    },
+    "s_c0b6bdf37a264f": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "bc13b54f-e668-41b0-92c8-e033ceafe10d",
+        "model": "cursor-grok-4.6-high-fast"
+      },
+      "human_author": "divyansh.chaudhary <divyansh.chaudhary@telekom-digital.com>"
+    },
+    "s_d4ff74dd241cfd": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "446a56c3-7e20-40e1-b83e-d4b971c22701",
+        "model": "cursor-grok-4.6-high-fast"
+      },
+      "human_author": "divyansh.chaudhary <divyansh.chaudhary@telekom-digital.com>"
+    },
+    "s_fa49054c191e91": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "52576555-d2af-4a30-becb-68e23f79d525",
+        "model": "cursor-grok-4.6-high-fast"
+      },
+      "human_author": "divyansh.chaudhary <divyansh.chaudhary@telekom-digital.com>"
+    },
+    "s_ffac8fbcf66c0f": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "7eb9be1a-0ec0-409c-8bd5-0ac8a70c838c",
+        "model": "cursor-grok-4.6-high-fast"
+      },
+      "human_author": "divyansh.chaudhary <divyansh.chaudhary@telekom-digital.com>"
+    }
+  }
+}
