@@ -1,0 +1,48 @@
+src/index.css
+  s_5de23ca1c08ccc::t_6f21443d7af196 541-543,545-600
+src/pages/WorkoutTypes.jsx
+  s_5de23ca1c08ccc::t_196f9b0cd6b720 3,5,12-13,15-21,37,46-52,54,80-86,88,91,93-94,96
+src/pages/Foods.jsx
+  s_5de23ca1c08ccc::t_89c0da4864d6d8 2,6,23-26,50-69,71,73-81,94-106,109-122,138,144-152,176-182,184-191,193,221-227,237,241,243
+src/pages/WorkoutSplitDetail.jsx
+  s_5de23ca1c08ccc::t_2e231b59f55115 3,5,22-25,34-53,64-76,88-93,95-96,108,117,120,122,140,154,161-163,165-171,173,179,196-202,230,237
+src/pages/WorkoutTypeDetail.jsx
+  s_5de23ca1c08ccc::t_9acafc531f5338 3,5,15-18,22-30,33-37,39-44,57-62,64,80,89,92,94,118-124,137,146-152,154
+src/pages/Settings.jsx
+  s_5de23ca1c08ccc::t_07736135365860 3,6,15-16,40-45,70-75,77,97,99-100
+src/pages/History.jsx
+  s_5de23ca1c08ccc::t_e3a87569a95e69 2,31-44,46-56,58,60-62,64-65,67-84
+src/pages/Today.jsx
+  s_5de23ca1c08ccc::t_5d3e8d03b9a95c 2,9,34-36,50-68,102-122,149-154,172,174-175,177,188,192,194,206,209,211-212,219,235,247,256,262
+src/pages/Workout.jsx
+  s_5de23ca1c08ccc::t_8287e5477f7bd0 3,6,38-41,43-48,50-67,70-82,120-127,129,160-165,177,179-183,185,208-214,219-226,228,237,241,243,255,261,265,274,276,278,286
+src/lib/busy.js
+  s_5de23ca1c08ccc::t_b6c9bffaade025 1-41
+src/App.jsx
+  s_5de23ca1c08ccc::t_bcac5ab7c48587 2,22-23,41-42
+src/components/BusyButton.jsx
+  s_5de23ca1c08ccc::t_f8719c63f0f21c 1-43
+src/pages/Auth.jsx
+  s_5de23ca1c08ccc::t_ca24575fbf09ef 2-3,23,25,28-35,61,73,77-85,89
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "577b689b9be3c6768adb0d3c8da36c1149b15385",
+  "prompts": {},
+  "humans": {
+    "h_80c9974143c35b": {
+      "author": "divyansh.chaudhary <your-personal@email.com>"
+    }
+  },
+  "sessions": {
+    "s_5de23ca1c08ccc": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "8f194660-bf5e-45b0-a846-f2c5cb8de874",
+        "model": "grok-4.5"
+      },
+      "human_author": "divyansh.chaudhary <your-personal@email.com>"
+    }
+  }
+}
