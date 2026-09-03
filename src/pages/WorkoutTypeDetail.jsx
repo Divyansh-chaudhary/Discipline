@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
+import { BusyButton, Spinner } from '../components/BusyButton.jsx'
 import { PageHead } from '../components/SyncChip.jsx'
+import { useBusy, useBusyKey } from '../lib/busy.js'
 import { useData } from '../sync/DataContext.jsx'
 
 export function WorkoutTypeDetail() {
@@ -10,28 +12,36 @@ export function WorkoutTypeDetail() {
 
   const [splitName, setSplitName] = useState('')
   const [renaming, setRenaming] = useState(null)
+  const [adding, runAdd] = useBusy()
+  const [savingName, runSaveName] = useBusy()
+  const [activating, runActivate] = useBusy()
+  const [rowBusy, runRow] = useBusyKey()
 
   if (!type) return <Navigate to="/workout/types" replace />
 
-  const addSplit = async () => {
-    const clean = splitName.trim()
-    if (!clean) return
-    setSplitName('')
-    await updateWorkoutType(type.id, (current) => ({
-      splits: [...(current.splits || []), { id: crypto.randomUUID(), name: clean, exercises: [] }],
-    }))
-  }
+  const addSplit = () =>
+    runAdd(async () => {
+      const clean = splitName.trim()
+      if (!clean) return
+      setSplitName('')
+      await updateWorkoutType(type.id, (current) => ({
+        splits: [...(current.splits || []), { id: crypto.randomUUID(), name: clean, exercises: [] }],
+      }))
+    })
 
   const removeSplit = (splitId) =>
-    updateWorkoutType(type.id, (current) => ({
-      splits: (current.splits || []).filter((split) => split.id !== splitId),
-    }))
+    runRow(splitId, () =>
+      updateWorkoutType(type.id, (current) => ({
+        splits: (current.splits || []).filter((split) => split.id !== splitId),
+      })),
+    )
 
-  const saveName = async () => {
-    const clean = renaming.trim()
-    if (clean) await updateWorkoutType(type.id, () => ({ name: clean }))
-    setRenaming(null)
-  }
+  const saveName = () =>
+    runSaveName(async () => {
+      const clean = renaming.trim()
+      if (clean) await updateWorkoutType(type.id, () => ({ name: clean }))
+      setRenaming(null)
+    })
 
   return (
     <div className="page">
@@ -44,9 +54,14 @@ export function WorkoutTypeDetail() {
           type.active ? (
             <span className="chip">In use</span>
           ) : (
-            <button className="secondary" onClick={() => activateWorkoutType(type.id)}>
+            <BusyButton
+              className="secondary"
+              busy={activating}
+              busyLabel="Switching…"
+              onClick={() => runActivate(() => activateWorkoutType(type.id))}
+            >
               Use this
-            </button>
+            </BusyButton>
           )
         }
       />
@@ -62,6 +77,7 @@ export function WorkoutTypeDetail() {
             <input
               id="rename-type"
               value={renaming}
+              disabled={savingName}
               onChange={(event) => setRenaming(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') saveName()
@@ -70,12 +86,12 @@ export function WorkoutTypeDetail() {
             />
           </div>
           <div className="btn-row">
-            <button className="secondary" onClick={() => setRenaming(null)}>
+            <button className="secondary" disabled={savingName} onClick={() => setRenaming(null)}>
               Cancel
             </button>
-            <button className="primary" onClick={saveName}>
+            <BusyButton className="primary" busy={savingName} busyLabel="Saving…" onClick={saveName}>
               Save name
-            </button>
+            </BusyButton>
           </div>
         </section>
       )}
@@ -99,8 +115,13 @@ export function WorkoutTypeDetail() {
                     : 'No exercises yet'}
                 </span>
               </Link>
-              <button className="icon-btn" aria-label={`Delete ${split.name}`} onClick={() => removeSplit(split.id)}>
-                ✕
+              <button
+                className={`icon-btn${rowBusy === split.id ? ' is-busy' : ''}`}
+                aria-label={`Delete ${split.name}`}
+                disabled={Boolean(rowBusy)}
+                onClick={() => removeSplit(split.id)}
+              >
+                {rowBusy === split.id ? <Spinner size={12} /> : '✕'}
               </button>
             </div>
           ))}
@@ -113,6 +134,7 @@ export function WorkoutTypeDetail() {
           <input
             id="split-name"
             value={splitName}
+            disabled={adding}
             onChange={(event) => setSplitName(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === 'Enter') addSplit()
@@ -121,9 +143,15 @@ export function WorkoutTypeDetail() {
             autoComplete="off"
           />
         </div>
-        <button className="secondary full" disabled={!splitName.trim()} onClick={addSplit}>
+        <BusyButton
+          className="secondary full"
+          busy={adding}
+          busyLabel="Adding…"
+          disabled={!splitName.trim()}
+          onClick={addSplit}
+        >
           + Add split
-        </button>
+        </BusyButton>
       </section>
     </div>
   )

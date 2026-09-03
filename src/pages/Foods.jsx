@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { BusyButton, Spinner } from '../components/BusyButton.jsx'
 import { FoodFields, emptyFood, parseFoodFields } from '../components/FoodFields.jsx'
 import { Sheet } from '../components/Sheet.jsx'
 import { PageHead } from '../components/SyncChip.jsx'
+import { useBusy, useBusyKey } from '../lib/busy.js'
 import { localDateKey } from '../lib/dates.js'
 import { fmtCal, fmtG, round1 } from '../lib/format.js'
 import { searchUsda } from '../lib/usda.js'
@@ -14,11 +16,14 @@ export function Foods() {
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState([])
   const [searchMeta, setSearchMeta] = useState(null)
-  const [searching, setSearching] = useState(false)
   const [sheet, setSheet] = useState(null)
   const [form, setForm] = useState(emptyFood)
   const [editingId, setEditingId] = useState(null)
   const [error, setError] = useState('')
+  const [searching, runSearchBusy] = useBusy()
+  const [saving, runSave] = useBusy()
+  const [hitBusy, runHit] = useBusyKey()
+  const [removingId, runRemove] = useBusyKey()
 
   const openCreate = () => {
     setEditingId(null)
@@ -42,37 +47,38 @@ export function Foods() {
     setSheet('edit')
   }
 
-  const persistFood = async () => {
-    const parsed = parseFoodFields(form, { deriveCalories: true })
-    if (!parsed.name) {
-      setError('Name is required.')
-      return
-    }
-    await saveFood(
-      {
-        name: parsed.name,
-        servingLabel: parsed.servingLabel,
-        calories: parsed.calories,
-        protein: parsed.protein,
-        carbs: parsed.carbs,
-        fat: parsed.fat,
-      },
-      editingId,
-    )
-    setSheet(null)
-  }
+  const persistFood = () =>
+    runSave(async () => {
+      const parsed = parseFoodFields(form, { deriveCalories: true })
+      if (!parsed.name) {
+        setError('Name is required.')
+        return
+      }
+      await saveFood(
+        {
+          name: parsed.name,
+          servingLabel: parsed.servingLabel,
+          calories: parsed.calories,
+          protein: parsed.protein,
+          carbs: parsed.carbs,
+          fat: parsed.fat,
+        },
+        editingId,
+      )
+      setSheet(null)
+    })
 
-  const runSearch = async (text = query) => {
+  const runSearch = (text = query) => {
     if (!text.trim()) return
-    setSearching(true)
-    setError('')
-    const result = await searchUsda(text)
-    setHits(result.foods)
-    setSearchMeta(result)
-    setSearching(false)
-    if (result.error && result.foods.length === 0) {
-      setError(result.error)
-    }
+    runSearchBusy(async () => {
+      setError('')
+      const result = await searchUsda(text)
+      setHits(result.foods)
+      setSearchMeta(result)
+      if (result.error && result.foods.length === 0) {
+        setError(result.error)
+      }
+    })
   }
 
   const fromUsda = (hit) => ({
@@ -85,34 +91,36 @@ export function Foods() {
     fat: String(hit.fat ?? ''),
   })
 
-  const saveUsda = async (hit) => {
-    const parsed = parseFoodFields(fromUsda(hit))
-    await saveFood({
-      name: parsed.name,
-      servingLabel: parsed.servingLabel,
-      calories: parsed.calories,
-      protein: parsed.protein,
-      carbs: parsed.carbs,
-      fat: parsed.fat,
-      source: 'usda',
-      fdcId: hit.fdcId,
+  const saveUsda = (hit) =>
+    runHit(`save-${hit.fdcId}`, async () => {
+      const parsed = parseFoodFields(fromUsda(hit))
+      await saveFood({
+        name: parsed.name,
+        servingLabel: parsed.servingLabel,
+        calories: parsed.calories,
+        protein: parsed.protein,
+        carbs: parsed.carbs,
+        fat: parsed.fat,
+        source: 'usda',
+        fdcId: hit.fdcId,
+      })
     })
-  }
 
-  const logUsda = async (hit) => {
-    const parsed = parseFoodFields(fromUsda(hit))
-    await addLog({
-      date: localDateKey(),
-      name: parsed.name,
-      servings: 1,
-      calories: round1(parsed.calories),
-      protein: round1(parsed.protein),
-      carbs: round1(parsed.carbs),
-      fat: round1(parsed.fat),
-      source: 'usda',
-      fdcId: hit.fdcId,
+  const logUsda = (hit) =>
+    runHit(`log-${hit.fdcId}`, async () => {
+      const parsed = parseFoodFields(fromUsda(hit))
+      await addLog({
+        date: localDateKey(),
+        name: parsed.name,
+        servings: 1,
+        calories: round1(parsed.calories),
+        protein: round1(parsed.protein),
+        carbs: round1(parsed.carbs),
+        fat: round1(parsed.fat),
+        source: 'usda',
+        fdcId: hit.fdcId,
+      })
     })
-  }
 
   return (
     <div className="page">
@@ -127,14 +135,21 @@ export function Foods() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="chicken thigh, rice, yogurt"
+              disabled={searching}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') runSearch()
               }}
             />
           </div>
-          <button className="primary full" disabled={searching || !query.trim()} onClick={() => runSearch()}>
-            {searching ? 'Searching…' : 'Search'}
-          </button>
+          <BusyButton
+            className="primary full"
+            busy={searching}
+            busyLabel="Searching…"
+            disabled={!query.trim()}
+            onClick={() => runSearch()}
+          >
+            Search
+          </BusyButton>
           {searchMeta?.source === 'cache' ? (
             <p className="tiny">Showing cached results — USDA was unavailable.</p>
           ) : null}
@@ -158,12 +173,24 @@ export function Foods() {
                     {hit.servingLabel} · {fmtCal(hit.calories)} kcal · P {fmtG(hit.protein)} C {fmtG(hit.carbs)} F {fmtG(hit.fat)}
                   </div>
                   <div className="btn-row" style={{ marginTop: 8 }}>
-                    <button className="secondary" onClick={() => saveUsda(hit)}>
+                    <BusyButton
+                      className="secondary"
+                      busy={hitBusy === `save-${hit.fdcId}`}
+                      busyLabel="Saving…"
+                      disabled={Boolean(hitBusy)}
+                      onClick={() => saveUsda(hit)}
+                    >
                       Save
-                    </button>
-                    <button className="primary" onClick={() => logUsda(hit)}>
+                    </BusyButton>
+                    <BusyButton
+                      className="primary"
+                      busy={hitBusy === `log-${hit.fdcId}`}
+                      busyLabel="Logging…"
+                      disabled={Boolean(hitBusy)}
+                      onClick={() => logUsda(hit)}
+                    >
                       Log today
-                    </button>
+                    </BusyButton>
                   </div>
                 </div>
               </div>
@@ -191,8 +218,13 @@ export function Foods() {
                   {food.servingLabel || '1 serving'} · {fmtCal(food.calories)} kcal
                 </div>
               </button>
-              <button className="icon-btn" aria-label={`Delete ${food.name}`} onClick={() => removeFood(food.id)}>
-                ✕
+              <button
+                className={`icon-btn${removingId === food.id ? ' is-busy' : ''}`}
+                aria-label={`Delete ${food.name}`}
+                disabled={Boolean(removingId)}
+                onClick={() => runRemove(food.id, () => removeFood(food.id))}
+              >
+                {removingId === food.id ? <Spinner size={12} /> : '✕'}
               </button>
             </div>
           ))}
@@ -202,13 +234,13 @@ export function Foods() {
       {sheet === 'edit' ? (
         <Sheet
           title={editingId ? 'Edit food' : 'New food'}
-          onClose={() => setSheet(null)}
+          onClose={() => !saving && setSheet(null)}
           footer={
             <>
               {error ? <p className="warn">{error}</p> : null}
-              <button className="primary full" onClick={persistFood}>
+              <BusyButton className="primary full" busy={saving} busyLabel="Saving…" onClick={persistFood}>
                 Save to pantry
-              </button>
+              </BusyButton>
             </>
           }
         >

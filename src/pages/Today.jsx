@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { BusyButton, Spinner } from '../components/BusyButton.jsx'
 import { FoodFields, emptyFood, parseFoodFields } from '../components/FoodFields.jsx'
 import { MacroBars, RemainingHero } from '../components/MacroBars.jsx'
 import { TodayPathCard } from '../components/PulseCard.jsx'
 import { Sheet } from '../components/Sheet.jsx'
 import { OfflineEmpty, PageHead } from '../components/SyncChip.jsx'
 import { totalsFromLogs } from '../db/index.js'
+import { useBusy, useBusyKey } from '../lib/busy.js'
 import { formatPrettyDate, localDateKey } from '../lib/dates.js'
 import { pulseFromState } from '../lib/discipline.js'
 import { fmtCal, fmtG, round1 } from '../lib/format.js'
@@ -29,6 +31,9 @@ export function Today() {
   const [form, setForm] = useState(emptyFood)
   const [pantrySelection, setPantrySelection] = useState({})
   const [error, setError] = useState('')
+  const [manualBusy, runManual] = useBusy()
+  const [pantryBusy, runPantry] = useBusy()
+  const [removingId, runRemove] = useBusyKey()
 
   const openManual = () => {
     setError('')
@@ -42,25 +47,26 @@ export function Today() {
     setSheet('pantry')
   }
 
-  const logManual = async () => {
-    const parsed = parseFoodFields(form, { deriveCalories: true })
-    if (!parsed.name) {
-      setError('Give the food a name.')
-      return
-    }
-    const servings = parsed.servings || 1
-    await addLog({
-      date,
-      name: parsed.name,
-      servings,
-      calories: round1(parsed.calories * servings),
-      protein: round1(parsed.protein * servings),
-      carbs: round1(parsed.carbs * servings),
-      fat: round1(parsed.fat * servings),
-      source: 'manual',
+  const logManual = () =>
+    runManual(async () => {
+      const parsed = parseFoodFields(form, { deriveCalories: true })
+      if (!parsed.name) {
+        setError('Give the food a name.')
+        return
+      }
+      const servings = parsed.servings || 1
+      await addLog({
+        date,
+        name: parsed.name,
+        servings,
+        calories: round1(parsed.calories * servings),
+        protein: round1(parsed.protein * servings),
+        carbs: round1(parsed.carbs * servings),
+        fat: round1(parsed.fat * servings),
+        source: 'manual',
+      })
+      setSheet(null)
     })
-    setSheet(null)
-  }
 
   const togglePantryFood = (food) => {
     setPantrySelection((current) => {
@@ -93,26 +99,27 @@ export function Today() {
 
   const pantryCount = Object.keys(pantrySelection).length
 
-  const logPantrySelection = async () => {
-    const selected = pantry.filter((food) => Object.hasOwn(pantrySelection, food.id))
-    await Promise.all(
-      selected.map((food) => {
-        const servings = cleanQuantity(pantrySelection[food.id])
-        return addLog({
-          date,
-          name: food.name,
-          servings,
-          calories: round1((food.calories || 0) * servings),
-          protein: round1((food.protein || 0) * servings),
-          carbs: round1((food.carbs || 0) * servings),
-          fat: round1((food.fat || 0) * servings),
-          source: 'custom',
-          customFoodId: food.id,
-        })
-      }),
-    )
-    setSheet(null)
-  }
+  const logPantrySelection = () =>
+    runPantry(async () => {
+      const selected = pantry.filter((food) => Object.hasOwn(pantrySelection, food.id))
+      await Promise.all(
+        selected.map((food) => {
+          const servings = cleanQuantity(pantrySelection[food.id])
+          return addLog({
+            date,
+            name: food.name,
+            servings,
+            calories: round1((food.calories || 0) * servings),
+            protein: round1((food.protein || 0) * servings),
+            carbs: round1((food.carbs || 0) * servings),
+            fat: round1((food.fat || 0) * servings),
+            source: 'custom',
+            customFoodId: food.id,
+          })
+        }),
+      )
+      setSheet(null)
+    })
 
   return (
     <div className="page">
@@ -139,6 +146,12 @@ export function Today() {
         </button>
       </div>
 
+      {!loaded && !unavailable ? (
+        <div className="inline-loader" style={{ marginBottom: 12 }}>
+          <Spinner size={14} /> Loading diary…
+        </div>
+      ) : null}
+
       <OfflineEmpty loaded={loaded && !unavailable}>
         {logs.length === 0 ? (
           <div className="empty card">
@@ -156,11 +169,12 @@ export function Today() {
                 </div>
                 <div className="kcal">{fmtCal(row.calories)}</div>
                 <button
-                  className="icon-btn"
+                  className={`icon-btn${removingId === row.id ? ' is-busy' : ''}`}
                   aria-label={`Remove ${row.name}`}
-                  onClick={() => removeLog(date, row.id)}
+                  disabled={Boolean(removingId)}
+                  onClick={() => runRemove(row.id, () => removeLog(date, row.id))}
                 >
-                  ✕
+                  {removingId === row.id ? <Spinner size={12} /> : '✕'}
                 </button>
               </div>
             ))}
@@ -171,13 +185,13 @@ export function Today() {
       {sheet === 'manual' ? (
         <Sheet
           title="Log food"
-          onClose={() => setSheet(null)}
+          onClose={() => !manualBusy && setSheet(null)}
           footer={
             <>
               {error ? <p className="warn">{error}</p> : null}
-              <button className="primary full" onClick={logManual}>
+              <BusyButton className="primary full" busy={manualBusy} busyLabel="Adding…" onClick={logManual}>
                 Add to today
-              </button>
+              </BusyButton>
             </>
           }
         >
@@ -189,18 +203,20 @@ export function Today() {
       {sheet === 'pantry' ? (
         <Sheet
           title="Choose from pantry"
-          onClose={() => setSheet(null)}
+          onClose={() => !pantryBusy && setSheet(null)}
           footer={
             pantry.length > 0 ? (
-              <button
+              <BusyButton
                 className="primary full"
+                busy={pantryBusy}
+                busyLabel="Adding…"
                 disabled={pantryCount === 0}
                 onClick={logPantrySelection}
               >
                 {pantryCount === 0
                   ? 'Select foods to log'
                   : `Add ${pantryCount} to today's diary`}
-              </button>
+              </BusyButton>
             ) : null
           }
         >
@@ -216,6 +232,7 @@ export function Today() {
                       className="pantry-choice grow"
                       onClick={() => togglePantryFood(food)}
                       aria-pressed={picked}
+                      disabled={pantryBusy}
                     >
                       <span className="check-mark">{picked ? '✓' : ''}</span>
                       <span className="grow">
@@ -227,7 +244,7 @@ export function Today() {
                       <div className="quantity-stepper">
                         <button
                           aria-label={`Less ${food.name}`}
-                          disabled={cleanQuantity(pantrySelection[food.id]) <= MIN_SERVINGS}
+                          disabled={pantryBusy || cleanQuantity(pantrySelection[food.id]) <= MIN_SERVINGS}
                           onClick={() => stepPantryQuantity(food.id, -SERVING_STEP)}
                         >
                           −
@@ -236,11 +253,13 @@ export function Today() {
                           inputMode="decimal"
                           aria-label={`Servings of ${food.name}`}
                           value={pantrySelection[food.id]}
+                          disabled={pantryBusy}
                           onChange={(event) => setPantryQuantity(food.id, event.target.value)}
                           onBlur={() => commitPantryQuantity(food.id)}
                         />
                         <button
                           aria-label={`More ${food.name}`}
+                          disabled={pantryBusy}
                           onClick={() => stepPantryQuantity(food.id, SERVING_STEP)}
                         >
                           +

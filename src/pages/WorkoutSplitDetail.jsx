@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
+import { BusyButton, Spinner } from '../components/BusyButton.jsx'
 import { PageHead } from '../components/SyncChip.jsx'
+import { useBusy, useBusyKey } from '../lib/busy.js'
 import { localDateKey } from '../lib/dates.js'
 import { useSplitStarter } from '../lib/workouts.js'
 import { useData } from '../sync/DataContext.jsx'
@@ -17,6 +19,10 @@ export function WorkoutSplitDetail() {
 
   const [draft, setDraft] = useState(BLANK_EXERCISE)
   const [renaming, setRenaming] = useState(null)
+  const [adding, runAdd] = useBusy()
+  const [starting, runStart] = useBusy()
+  const [savingName, runSaveName] = useBusy()
+  const [rowBusy, runRow] = useBusyKey()
 
   if (!type || !split) return <Navigate to="/workout/types" replace />
 
@@ -25,24 +31,26 @@ export function WorkoutSplitDetail() {
       splits: (current.splits || []).map((row) => (row.id === split.id ? updater(row) : row)),
     }))
 
-  const addExercise = async () => {
-    const name = draft.name.trim()
-    if (!name) return
-    setDraft(BLANK_EXERCISE)
-    await patchSplit((row) => ({
-      ...row,
-      exercises: [
-        ...(row.exercises || []),
-        {
-          id: crypto.randomUUID(),
-          name,
-          sets: Math.max(1, Number(draft.sets) || 1),
-          reps: Math.max(0, Number(draft.reps) || 0),
-          weight: Math.max(0, Number(draft.weight) || 0),
-        },
-      ],
-    }))
-  }
+  const addExercise = () =>
+    runAdd(async () => {
+      const name = draft.name.trim()
+      if (!name) return
+      const next = { ...draft }
+      setDraft(BLANK_EXERCISE)
+      await patchSplit((row) => ({
+        ...row,
+        exercises: [
+          ...(row.exercises || []),
+          {
+            id: crypto.randomUUID(),
+            name,
+            sets: Math.max(1, Number(next.sets) || 1),
+            reps: Math.max(0, Number(next.reps) || 0),
+            weight: Math.max(0, Number(next.weight) || 0),
+          },
+        ],
+      }))
+    })
 
   const saveExercise = (exerciseId, patch) =>
     patchSplit((row) => ({
@@ -53,16 +61,19 @@ export function WorkoutSplitDetail() {
     }))
 
   const removeExercise = (exerciseId) =>
-    patchSplit((row) => ({
-      ...row,
-      exercises: row.exercises.filter((exercise) => exercise.id !== exerciseId),
-    }))
+    runRow(exerciseId, () =>
+      patchSplit((row) => ({
+        ...row,
+        exercises: row.exercises.filter((exercise) => exercise.id !== exerciseId),
+      })),
+    )
 
-  const saveName = async () => {
-    const clean = renaming.trim()
-    if (clean) await patchSplit((row) => ({ ...row, name: clean }))
-    setRenaming(null)
-  }
+  const saveName = () =>
+    runSaveName(async () => {
+      const clean = renaming.trim()
+      if (clean) await patchSplit((row) => ({ ...row, name: clean }))
+      setRenaming(null)
+    })
 
   return (
     <div className="page">
@@ -74,10 +85,15 @@ export function WorkoutSplitDetail() {
       />
 
       <div className="btn-row">
-        <button className="primary" onClick={() => startSplit(type, split)}>
+        <BusyButton
+          className="primary"
+          busy={starting}
+          busyLabel="Starting…"
+          onClick={() => runStart(() => startSplit(type, split))}
+        >
           Start today
-        </button>
-        <button className="secondary" onClick={() => setRenaming(split.name)}>
+        </BusyButton>
+        <button className="secondary" disabled={starting} onClick={() => setRenaming(split.name)}>
           Rename split
         </button>
       </div>
@@ -89,6 +105,7 @@ export function WorkoutSplitDetail() {
             <input
               id="rename-split"
               value={renaming}
+              disabled={savingName}
               onChange={(event) => setRenaming(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') saveName()
@@ -97,12 +114,12 @@ export function WorkoutSplitDetail() {
             />
           </div>
           <div className="btn-row">
-            <button className="secondary" onClick={() => setRenaming(null)}>
+            <button className="secondary" disabled={savingName} onClick={() => setRenaming(null)}>
               Cancel
             </button>
-            <button className="primary" onClick={saveName}>
+            <BusyButton className="primary" busy={savingName} busyLabel="Saving…" onClick={saveName}>
               Save name
-            </button>
+            </BusyButton>
           </div>
         </section>
       )}
@@ -120,6 +137,7 @@ export function WorkoutSplitDetail() {
             <PlannedExercise
               key={exercise.id}
               exercise={exercise}
+              removing={rowBusy === exercise.id}
               onSave={(patch) => saveExercise(exercise.id, patch)}
               onRemove={() => removeExercise(exercise.id)}
             />
@@ -133,25 +151,32 @@ export function WorkoutSplitDetail() {
           <input
             id="new-exercise"
             value={draft.name}
+            disabled={adding}
             onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
             placeholder="Bench press"
             autoComplete="off"
           />
         </div>
         <div className="grid-3">
-          <NumberField label="Sets" value={draft.sets} onChange={(sets) => setDraft((c) => ({ ...c, sets }))} />
-          <NumberField label="Reps" value={draft.reps} onChange={(reps) => setDraft((c) => ({ ...c, reps }))} />
-          <NumberField label="Kg" decimal value={draft.weight} onChange={(weight) => setDraft((c) => ({ ...c, weight }))} />
+          <NumberField label="Sets" value={draft.sets} disabled={adding} onChange={(sets) => setDraft((c) => ({ ...c, sets }))} />
+          <NumberField label="Reps" value={draft.reps} disabled={adding} onChange={(reps) => setDraft((c) => ({ ...c, reps }))} />
+          <NumberField label="Kg" decimal value={draft.weight} disabled={adding} onChange={(weight) => setDraft((c) => ({ ...c, weight }))} />
         </div>
-        <button className="secondary full" disabled={!draft.name.trim()} onClick={addExercise}>
+        <BusyButton
+          className="secondary full"
+          busy={adding}
+          busyLabel="Adding…"
+          disabled={!draft.name.trim()}
+          onClick={addExercise}
+        >
           + Add exercise
-        </button>
+        </BusyButton>
       </section>
     </div>
   )
 }
 
-function PlannedExercise({ exercise, onSave, onRemove }) {
+function PlannedExercise({ exercise, onSave, onRemove, removing }) {
   const [local, setLocal] = useState({
     sets: String(exercise.sets),
     reps: String(exercise.reps),
@@ -168,8 +193,13 @@ function PlannedExercise({ exercise, onSave, onRemove }) {
     <section className="card planned-exercise">
       <div className="page-head-row">
         <strong>{exercise.name}</strong>
-        <button className="icon-btn" aria-label={`Remove ${exercise.name}`} onClick={onRemove}>
-          ✕
+        <button
+          className={`icon-btn${removing ? ' is-busy' : ''}`}
+          aria-label={`Remove ${exercise.name}`}
+          disabled={removing}
+          onClick={onRemove}
+        >
+          {removing ? <Spinner size={12} /> : '✕'}
         </button>
       </div>
       <div className="grid-3">
@@ -197,13 +227,14 @@ function PlannedExercise({ exercise, onSave, onRemove }) {
   )
 }
 
-function NumberField({ label, value, onChange, onBlur, decimal = false }) {
+function NumberField({ label, value, onChange, onBlur, decimal = false, disabled = false }) {
   return (
     <label className="mini-field">
       <span>{label}</span>
       <input
         inputMode={decimal ? 'decimal' : 'numeric'}
         value={value}
+        disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
         onBlur={onBlur}
       />

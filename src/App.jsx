@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { Spinner } from './components/BusyButton.jsx'
 import { BottomNav } from './components/BottomNav.jsx'
 import { AuthScreen } from './pages/Auth.jsx'
 import { Foods } from './pages/Foods.jsx'
@@ -18,7 +19,8 @@ export default function App() {
   if (!authReady) {
     return (
       <div className="app-shell">
-        <div className="page">
+        <div className="page page-loader">
+          <Spinner size={28} label="Loading app" />
           <p className="sub">Loading…</p>
         </div>
       </div>
@@ -36,7 +38,8 @@ export default function App() {
   if (!ready) {
     return (
       <div className="app-shell">
-        <div className="page">
+        <div className="page page-loader">
+          <Spinner size={28} label="Syncing account" />
           <p className="sub">Syncing your account…</p>
           {bootError ? <p className="warn">{bootError}</p> : null}
         </div>

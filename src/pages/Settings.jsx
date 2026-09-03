@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { BusyButton } from '../components/BusyButton.jsx'
 import { PageHead } from '../components/SyncChip.jsx'
 import { DEFAULT_TARGETS } from '../db/index.js'
+import { useBusy } from '../lib/busy.js'
 import { caloriesFromMacros, fmtCal, fmtG, round0 } from '../lib/format.js'
 import { useData } from '../sync/DataContext.jsx'
 
@@ -10,6 +12,8 @@ export function Settings() {
   const [form, setForm] = useState(DEFAULT_TARGETS)
   const [saved, setSaved] = useState(false)
   const [installEvent, setInstallEvent] = useState(null)
+  const [saving, runSave] = useBusy()
+  const [loggingOut, runLogout] = useBusy()
   const ios = isIos()
   const standalone = isStandalone()
 
@@ -33,11 +37,12 @@ export function Settings() {
     return () => window.removeEventListener('beforeinstallprompt', onPrompt)
   }, [])
 
-  const save = async () => {
-    await saveTargets(form)
-    setSaved(true)
-    window.setTimeout(() => setSaved(false), 1600)
-  }
+  const save = () =>
+    runSave(async () => {
+      await saveTargets(form)
+      setSaved(true)
+      window.setTimeout(() => setSaved(false), 1600)
+    })
 
   const restoreDefaults = () => {
     setForm({ ...DEFAULT_TARGETS })
@@ -62,9 +67,14 @@ export function Settings() {
           <h2 className="card-title">Account</h2>
           <p className="sub">{user?.email}</p>
         </div>
-        <button className="secondary full" type="button" onClick={logout}>
+        <BusyButton
+          className="secondary full"
+          busy={loggingOut}
+          busyLabel="Signing out…"
+          onClick={() => runLogout(() => logout())}
+        >
           Sign out
-        </button>
+        </BusyButton>
       </section>
 
       <section className="card stack" style={{ marginTop: 14 }}>
@@ -84,10 +94,10 @@ export function Settings() {
           P {fmtG(form.protein)} + C {fmtG(form.carbs)} + F {fmtG(form.fat)} add up to about {fmtCal(atwater)} kcal
           (4 / 4 / 9). Your calorie target can stay different.
         </p>
-        <button className="primary full" onClick={save}>
+        <BusyButton className="primary full" busy={saving} busyLabel="Saving…" onClick={save}>
           {saved ? 'Saved' : 'Save targets'}
-        </button>
-        <button className="secondary full" type="button" onClick={restoreDefaults}>
+        </BusyButton>
+        <button className="secondary full" type="button" disabled={saving} onClick={restoreDefaults}>
           Reset to {DEFAULT_TARGETS.calories} / {DEFAULT_TARGETS.protein} / {DEFAULT_TARGETS.carbs} / {DEFAULT_TARGETS.fat}
         </button>
       </section>

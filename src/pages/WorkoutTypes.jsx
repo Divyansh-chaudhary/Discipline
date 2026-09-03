@@ -1,19 +1,24 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { BusyButton, Spinner } from '../components/BusyButton.jsx'
 import { PageHead } from '../components/SyncChip.jsx'
+import { useBusy, useBusyKey } from '../lib/busy.js'
 import { useData } from '../sync/DataContext.jsx'
 
 export function WorkoutTypes() {
   const { workoutTypes, createWorkoutType, activateWorkoutType, removeWorkoutType } = useData()
   const navigate = useNavigate()
   const [name, setName] = useState('')
+  const [creating, runCreate] = useBusy()
+  const [rowBusy, runRow] = useBusyKey()
 
-  const create = async () => {
-    const created = await createWorkoutType(name)
-    if (!created) return
-    setName('')
-    navigate(`/workout/types/${created.id}`)
-  }
+  const create = () =>
+    runCreate(async () => {
+      const created = await createWorkoutType(name)
+      if (!created) return
+      setName('')
+      navigate(`/workout/types/${created.id}`)
+    })
 
   return (
     <div className="page">
@@ -29,6 +34,7 @@ export function WorkoutTypes() {
           <input
             id="type-name"
             value={name}
+            disabled={creating}
             onChange={(event) => setName(event.target.value)}
             onKeyDown={(event) => {
               if (event.key === 'Enter') create()
@@ -37,9 +43,15 @@ export function WorkoutTypes() {
             autoComplete="off"
           />
         </div>
-        <button className="primary full" disabled={!name.trim()} onClick={create}>
+        <BusyButton
+          className="primary full"
+          busy={creating}
+          busyLabel="Creating…"
+          disabled={!name.trim()}
+          onClick={create}
+        >
           Create workout type
-        </button>
+        </BusyButton>
       </section>
 
       <div className="section-title">
@@ -65,16 +77,23 @@ export function WorkoutTypes() {
                 </span>
               </Link>
               {type.active ? null : (
-                <button className="secondary compact-btn" onClick={() => activateWorkoutType(type.id)}>
+                <BusyButton
+                  className="secondary compact-btn"
+                  busy={rowBusy === `use-${type.id}`}
+                  busyLabel="…"
+                  disabled={Boolean(rowBusy)}
+                  onClick={() => runRow(`use-${type.id}`, () => activateWorkoutType(type.id))}
+                >
                   Use
-                </button>
+                </BusyButton>
               )}
               <button
-                className="icon-btn"
+                className={`icon-btn${rowBusy === `del-${type.id}` ? ' is-busy' : ''}`}
                 aria-label={`Delete ${type.name}`}
-                onClick={() => removeWorkoutType(type.id)}
+                disabled={Boolean(rowBusy)}
+                onClick={() => runRow(`del-${type.id}`, () => removeWorkoutType(type.id))}
               >
-                ✕
+                {rowBusy === `del-${type.id}` ? <Spinner size={12} /> : '✕'}
               </button>
             </div>
           ))}

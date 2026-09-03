@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { BusyButton } from '../components/BusyButton.jsx'
+import { useBusy } from '../lib/busy.js'
 import { useData } from '../sync/DataContext.jsx'
 
 function friendlyError(err) {
@@ -18,20 +20,19 @@ export function AuthScreen() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-  const [busy, setBusy] = useState(false)
+  const [busy, runBusy] = useBusy()
 
-  const submit = async (e) => {
+  const submit = (e) => {
     e.preventDefault()
     setError('')
-    setBusy(true)
-    try {
-      if (mode === 'register') await register(email, password)
-      else await login(email, password)
-    } catch (err) {
-      setError(friendlyError(err))
-    } finally {
-      setBusy(false)
-    }
+    runBusy(async () => {
+      try {
+        if (mode === 'register') await register(email, password)
+        else await login(email, password)
+      } catch (err) {
+        setError(friendlyError(err))
+      }
+    })
   }
 
   return (
@@ -57,6 +58,7 @@ export function AuthScreen() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              disabled={busy}
             />
           </div>
           <div className="field">
@@ -68,15 +70,23 @@ export function AuthScreen() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              disabled={busy}
             />
           </div>
           {error ? <p className="warn">{error}</p> : null}
-          <button className="primary full" type="submit" disabled={busy || !online}>
-            {busy ? 'Working…' : mode === 'register' ? 'Register' : 'Sign in'}
-          </button>
+          <BusyButton
+            className="primary full"
+            type="submit"
+            busy={busy}
+            busyLabel={mode === 'register' ? 'Creating…' : 'Signing in…'}
+            disabled={!online}
+          >
+            {mode === 'register' ? 'Register' : 'Sign in'}
+          </BusyButton>
           <button
             className="secondary full"
             type="button"
+            disabled={busy}
             onClick={() => {
               setMode(mode === 'register' ? 'login' : 'register')
               setError('')

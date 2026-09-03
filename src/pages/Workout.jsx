@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { BusyButton, Spinner } from '../components/BusyButton.jsx'
 import { Sheet } from '../components/Sheet.jsx'
 import { PageHead } from '../components/SyncChip.jsx'
+import { useBusy, useBusyKey } from '../lib/busy.js'
 import { formatPrettyDate, localDateKey } from '../lib/dates.js'
 import { activeWorkoutType, groupSets, useSplitStarter } from '../lib/workouts.js'
 import { useData, useDay } from '../sync/DataContext.jsx'
@@ -33,45 +35,52 @@ export function Workout() {
   const [weight, setWeight] = useState('0')
   const [sessionName, setSessionName] = useState('')
   const [error, setError] = useState('')
+  const [addBusy, runAdd] = useBusy()
+  const [renameBusy, runRename] = useBusy()
+  const [splitBusy, runSplit] = useBusyKey()
+  const [setBusy, runSet] = useBusyKey()
 
-  const renameSession = async () => {
-    if (!workout || !sessionName.trim()) return
-    await renameWorkout(date, workout.id, sessionName.trim())
-    setSheet(null)
-  }
-
-  const addExercise = async () => {
-    const name = exerciseName.trim()
-    if (!name) {
-      setError('Name the movement.')
-      return
-    }
-    const session = workout ?? (await ensureWorkout(date))
-    if (!session) return
-    const existing = sets.filter((set) => set.exercise === name)
-    await addSet(date, {
-      workoutId: session.id,
-      exercise: name,
-      reps: Number(reps) || 0,
-      weight: Number(weight) || 0,
-      setNumber: existing.length + 1,
+  const renameSession = () =>
+    runRename(async () => {
+      if (!workout || !sessionName.trim()) return
+      await renameWorkout(date, workout.id, sessionName.trim())
+      setSheet(null)
     })
-    setSheet(null)
-  }
 
-  const plusSet = async (exercise) => {
-    const session = workout ?? (await ensureWorkout(date))
-    if (!session) return
-    const existing = sets.filter((set) => set.exercise === exercise)
-    const last = existing[existing.length - 1]
-    await addSet(date, {
-      workoutId: session.id,
-      exercise,
-      reps: last?.reps ?? 8,
-      weight: last?.weight ?? 0,
-      setNumber: existing.length + 1,
+  const addExercise = () =>
+    runAdd(async () => {
+      const name = exerciseName.trim()
+      if (!name) {
+        setError('Name the movement.')
+        return
+      }
+      const session = workout ?? (await ensureWorkout(date))
+      if (!session) return
+      const existing = sets.filter((set) => set.exercise === name)
+      await addSet(date, {
+        workoutId: session.id,
+        exercise: name,
+        reps: Number(reps) || 0,
+        weight: Number(weight) || 0,
+        setNumber: existing.length + 1,
+      })
+      setSheet(null)
     })
-  }
+
+  const plusSet = (exercise) =>
+    runSet(`plus-${exercise}`, async () => {
+      const session = workout ?? (await ensureWorkout(date))
+      if (!session) return
+      const existing = sets.filter((set) => set.exercise === exercise)
+      const last = existing[existing.length - 1]
+      await addSet(date, {
+        workoutId: session.id,
+        exercise,
+        reps: last?.reps ?? 8,
+        weight: last?.weight ?? 0,
+        setNumber: existing.length + 1,
+      })
+    })
 
   return (
     <div className="page">
@@ -108,9 +117,16 @@ export function Workout() {
             <p className="tiny" style={{ marginTop: 12 }}>Load a split into today</p>
             <div className="chip-row">
               {currentType.splits.map((split) => (
-                <button key={split.id} className="secondary chip-btn" onClick={() => startSplit(currentType, split)}>
+                <BusyButton
+                  key={split.id}
+                  className="secondary chip-btn"
+                  busy={splitBusy === split.id}
+                  busyLabel="Loading…"
+                  disabled={Boolean(splitBusy)}
+                  onClick={() => runSplit(split.id, () => startSplit(currentType, split))}
+                >
                   {split.name}
-                </button>
+                </BusyButton>
               ))}
             </div>
           </>
@@ -141,6 +157,12 @@ export function Workout() {
         </Link>
       </div>
 
+      {!loaded ? (
+        <div className="inline-loader" style={{ marginTop: 12 }}>
+          <Spinner size={14} /> Loading session…
+        </div>
+      ) : null}
+
       {grouped.length === 0 ? (
         <div className="empty card" style={{ marginTop: 12 }}>
           Nothing logged yet. Load a split above or add a single exercise.
@@ -152,11 +174,15 @@ export function Workout() {
               <div className="page-head-row" style={{ marginBottom: 8 }}>
                 <h3>{group.exercise}</h3>
                 <button
-                  className="icon-btn"
+                  className={`icon-btn${setBusy === `rm-${group.exercise}` ? ' is-busy' : ''}`}
                   aria-label={`Remove ${group.exercise}`}
-                  onClick={() => workout && removeExercise(date, workout.id, group.exercise)}
+                  disabled={Boolean(setBusy)}
+                  onClick={() =>
+                    workout &&
+                    runSet(`rm-${group.exercise}`, () => removeExercise(date, workout.id, group.exercise))
+                  }
                 >
-                  ✕
+                  {setBusy === `rm-${group.exercise}` ? <Spinner size={12} /> : '✕'}
                 </button>
               </div>
               <div className="set-table">
@@ -179,15 +205,27 @@ export function Workout() {
                       value={set.weight}
                       onChange={(event) => updateSet(date, set.id, { weight: Number(event.target.value) || 0 })}
                     />
-                    <button className="icon-btn" aria-label="Delete set" onClick={() => removeSet(date, set)}>
-                      ✕
+                    <button
+                      className={`icon-btn${setBusy === set.id ? ' is-busy' : ''}`}
+                      aria-label="Delete set"
+                      disabled={Boolean(setBusy)}
+                      onClick={() => runSet(set.id, () => removeSet(date, set))}
+                    >
+                      {setBusy === set.id ? <Spinner size={12} /> : '✕'}
                     </button>
                   </div>
                 ))}
               </div>
-              <button className="secondary full" style={{ marginTop: 10 }} onClick={() => plusSet(group.exercise)}>
+              <BusyButton
+                className="secondary full"
+                style={{ marginTop: 10 }}
+                busy={setBusy === `plus-${group.exercise}`}
+                busyLabel="Adding…"
+                disabled={Boolean(setBusy)}
+                onClick={() => plusSet(group.exercise)}
+              >
                 + Set
-              </button>
+              </BusyButton>
             </section>
           ))}
         </div>
@@ -196,13 +234,13 @@ export function Workout() {
       {sheet === 'exercise' ? (
         <Sheet
           title="Add exercise"
-          onClose={() => setSheet(null)}
+          onClose={() => !addBusy && setSheet(null)}
           footer={
             <>
               {error ? <p className="warn">{error}</p> : null}
-              <button className="primary full" onClick={addExercise}>
+              <BusyButton className="primary full" busy={addBusy} busyLabel="Adding…" onClick={addExercise}>
                 Add with first set
-              </button>
+              </BusyButton>
             </>
           }
         >
@@ -214,16 +252,17 @@ export function Workout() {
               onChange={(event) => setExerciseName(event.target.value)}
               placeholder="Bench press"
               autoComplete="off"
+              disabled={addBusy}
             />
           </div>
           <div className="grid-2">
             <div className="field">
               <label htmlFor="ex-reps">Reps</label>
-              <input id="ex-reps" inputMode="numeric" value={reps} onChange={(event) => setReps(event.target.value)} />
+              <input id="ex-reps" inputMode="numeric" value={reps} disabled={addBusy} onChange={(event) => setReps(event.target.value)} />
             </div>
             <div className="field">
               <label htmlFor="ex-w">Weight (kg)</label>
-              <input id="ex-w" inputMode="decimal" value={weight} onChange={(event) => setWeight(event.target.value)} />
+              <input id="ex-w" inputMode="decimal" value={weight} disabled={addBusy} onChange={(event) => setWeight(event.target.value)} />
             </div>
           </div>
         </Sheet>
@@ -232,11 +271,11 @@ export function Workout() {
       {sheet === 'rename' ? (
         <Sheet
           title="Session name"
-          onClose={() => setSheet(null)}
+          onClose={() => !renameBusy && setSheet(null)}
           footer={
-            <button className="primary full" onClick={renameSession}>
+            <BusyButton className="primary full" busy={renameBusy} busyLabel="Saving…" onClick={renameSession}>
               Save
-            </button>
+            </BusyButton>
           }
         >
           <div className="field">
@@ -244,6 +283,7 @@ export function Workout() {
             <input
               id="sess"
               value={sessionName}
+              disabled={renameBusy}
               onChange={(event) => setSessionName(event.target.value)}
               placeholder="PPL · Push"
             />
