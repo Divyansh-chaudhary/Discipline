@@ -1,0 +1,46 @@
+server/store.js
+  s_5de23ca1c08ccc::t_e8dc2574874b31 364-391
+src/components/WeekReview.jsx
+  s_5de23ca1c08ccc::t_00ae6c09b06934 1-100
+src/lib/week.js
+  s_5de23ca1c08ccc::t_b090433f621bf8 1-63
+server/routes/api.js
+  s_5de23ca1c08ccc::t_0ec13e71d6af55 16
+  s_5de23ca1c08ccc::t_6dfc2d0e5d164f 56-65
+  s_5de23ca1c08ccc::t_8ea228d7916a6f 3
+src/pages/History.jsx
+  s_5de23ca1c08ccc::t_3e94a6ebad63b0 1-2,6,10-11,14-88,95,150,158
+src/pages/Today.jsx
+  s_5de23ca1c08ccc::t_783c4f4a7c27cb 13-15
+  s_5de23ca1c08ccc::t_343a20bf1aaed9 167-168
+  s_5de23ca1c08ccc::t_9e8d69bd3712be 20-51
+  s_5de23ca1c08ccc::t_8284161b61cd2f 1-2
+src/sync/DataContext.jsx
+  s_5de23ca1c08ccc::t_5ad3e83e50c24c 635
+  s_5de23ca1c08ccc::t_e86605706bcfef 679-714
+  s_5de23ca1c08ccc::t_243522d9347951 177-198
+  s_5de23ca1c08ccc::t_df48e8705871c4 599
+src/index.css
+  s_5de23ca1c08ccc::t_1d8374eb72e63c 1056-1138
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "f1673a605a3e1a702d3201ff15159980d66b0d4a",
+  "prompts": {},
+  "humans": {
+    "h_80c9974143c35b": {
+      "author": "divyansh.chaudhary <your-personal@email.com>"
+    }
+  },
+  "sessions": {
+    "s_5de23ca1c08ccc": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "8f194660-bf5e-45b0-a846-f2c5cb8de874",
+        "model": "claude-opus-5"
+      },
+      "human_author": "divyansh.chaudhary <your-personal@email.com>"
+    }
+  }
+}
