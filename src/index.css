@@ -187,7 +187,26 @@ p {
 }
 
 .auth-page {
-  padding-bottom: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: 24px 18px calc(24px + env(safe-area-inset-bottom));
+}
+
+.auth-panel {
+  width: 100%;
+  max-width: 360px;
+}
+
+.auth-head {
+  margin-bottom: 18px;
+  text-align: center;
+}
+
+.auth-head h1 {
+  font-size: 34px;
+  line-height: 1.1;
 }
 
 .kicker {

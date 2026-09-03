@@ -27,7 +27,12 @@ export async function api(path, { method = 'GET', body, headers } = {}) {
     data = { error: text }
   }
   if (!res.ok) {
-    throw new ApiError(data?.error || res.statusText, res.status, data)
+    const raw = data?.error || text || res.statusText
+    const message =
+      res.status === 404 || /NOT_FOUND|could not be found/i.test(String(raw))
+        ? 'Service unavailable. Try again in a minute.'
+        : String(raw)
+    throw new ApiError(message, res.status, data)
   }
   return data
 }
