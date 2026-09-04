@@ -15,8 +15,7 @@ import { lastNDates, weekReview } from '../lib/week.js'
 import { exerciseLine, sessionSummary } from '../lib/workouts.js'
 import { useData, useDateRange, useDay } from '../sync/DataContext.jsx'
 
-const MIN_SERVINGS = 1
-const SERVING_STEP = 1
+const MIN_QUANTITY = 0.01
 
 function WeekBalanceCard({ today, targets }) {
   const dates = useMemo(() => lastNDates(today, 7), [today])
@@ -51,7 +50,33 @@ function WeekBalanceCard({ today, targets }) {
 }
 
 function cleanQuantity(value, delta = 0) {
-  return round1(Math.max(MIN_SERVINGS, (Number(value) || MIN_SERVINGS) + delta))
+  return round1(Math.max(MIN_QUANTITY, (Number(value) || MIN_QUANTITY) + delta))
+}
+
+function referenceQuantity(food) {
+  if (food.referenceQuantity != null) return Math.max(MIN_QUANTITY, Number(food.referenceQuantity) || 1)
+  const match = String(food.servingLabel || '').match(/^\s*(\d+(?:\.\d+)?)\s*(.+?)\s*$/)
+  return Math.max(MIN_QUANTITY, Number(match?.[1]) || 1)
+}
+
+function referenceUnit(food) {
+  if (food.referenceUnit) return food.referenceUnit
+  const match = String(food.servingLabel || '').match(/^\s*\d+(?:\.\d+)?\s*(.+?)\s*$/)
+  return match?.[1] || 'serving'
+}
+
+function quantityStep(food) {
+  return referenceQuantity(food) >= 10 ? 10 : 1
+}
+
+function pantryTotals(food, quantity) {
+  const multiplier = cleanQuantity(quantity) / referenceQuantity(food)
+  return {
+    calories: round1((food.calories || 0) * multiplier),
+    protein: round1((food.protein || 0) * multiplier),
+    carbs: round1((food.carbs || 0) * multiplier),
+    fat: round1((food.fat || 0) * multiplier),
+  }
 }
 
 export function Today() {
@@ -108,7 +133,7 @@ export function Today() {
     setPantrySelection((current) => {
       const next = { ...current }
       if (Object.hasOwn(next, food.id)) delete next[food.id]
-      else next[food.id] = '1'
+      else next[food.id] = String(referenceQuantity(food))
       return next
     })
   }
@@ -140,14 +165,14 @@ export function Today() {
       const items = pantry
         .filter((food) => Object.hasOwn(pantrySelection, food.id))
         .map((food) => {
-          const servings = cleanQuantity(pantrySelection[food.id])
+          const quantity = cleanQuantity(pantrySelection[food.id])
+          const multiplier = quantity / referenceQuantity(food)
           return {
             name: food.name,
-            servings,
-            calories: round1((food.calories || 0) * servings),
-            protein: round1((food.protein || 0) * servings),
-            carbs: round1((food.carbs || 0) * servings),
-            fat: round1((food.fat || 0) * servings),
+            servings: multiplier,
+            quantity,
+            quantityUnit: referenceUnit(food),
+            ...pantryTotals(food, quantity),
             source: 'custom',
             customFoodId: food.id,
           }
@@ -198,7 +223,7 @@ export function Today() {
                 <div className="grow">
                   <div className="name">
                     {row.name}
-                    {row.servings > 1 ? <span className="tiny"> ×{row.servings}</span> : null}
+                    {row.quantity != null ? <span className="tiny"> · {row.quantity} {row.quantityUnit || 'serving'}</span> : row.servings > 1 ? <span className="tiny"> ×{row.servings}</span> : null}
                   </div>
                   <div className="meta">{macroSummary(row)}</div>
                 </div>
@@ -271,21 +296,22 @@ export function Today() {
                       <span className="check-mark">{picked ? '✓' : ''}</span>
                       <span className="grow">
                         <span className="name">{food.name}</span>
-                        <span className="meta">{food.servingLabel || '1 serving'} · {fmtCal(food.calories)} kcal</span>
+                        <span className="meta">Per {referenceQuantity(food)} {referenceUnit(food)} · {fmtCal(food.calories)} kcal</span>
+                        {picked ? <span className="tiny">{macroSummary(pantryTotals(food, pantrySelection[food.id]))}</span> : null}
                       </span>
                     </button>
                     {picked ? (
                       <div className="quantity-stepper">
                         <button
                           aria-label={`Less ${food.name}`}
-                          disabled={pantryBusy || cleanQuantity(pantrySelection[food.id]) <= MIN_SERVINGS}
-                          onClick={() => stepPantryQuantity(food.id, -SERVING_STEP)}
+                          disabled={pantryBusy || cleanQuantity(pantrySelection[food.id]) <= MIN_QUANTITY}
+                          onClick={() => stepPantryQuantity(food.id, -quantityStep(food))}
                         >
                           −
                         </button>
                         <input
                           inputMode="decimal"
-                          aria-label={`Servings of ${food.name}`}
+                          aria-label={`Quantity of ${food.name} in ${referenceUnit(food)}`}
                           value={pantrySelection[food.id]}
                           disabled={pantryBusy}
                           onChange={(event) => setPantryQuantity(food.id, event.target.value)}
@@ -294,10 +320,11 @@ export function Today() {
                         <button
                           aria-label={`More ${food.name}`}
                           disabled={pantryBusy}
-                          onClick={() => stepPantryQuantity(food.id, SERVING_STEP)}
+                          onClick={() => stepPantryQuantity(food.id, quantityStep(food))}
                         >
                           +
                         </button>
+                        <span className="quantity-unit">{referenceUnit(food)}</span>
                       </div>
                     ) : null}
                   </div>

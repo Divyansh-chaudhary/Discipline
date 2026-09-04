@@ -511,6 +511,13 @@ p {
   background: transparent;
 }
 
+.quantity-unit {
+  padding: 0 6px 0 3px;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
 .row .grow {
   flex: 1;
   min-width: 0;

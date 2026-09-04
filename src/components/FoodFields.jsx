@@ -3,6 +3,8 @@ import { formatDerivedCalories } from '../lib/format.js'
 export const emptyFood = {
   name: '',
   servingLabel: '1 serving',
+  referenceQuantity: '1',
+  referenceUnit: 'serving',
   servings: '1',
   calories: '',
   protein: '',
@@ -10,7 +12,7 @@ export const emptyFood = {
   fat: '',
 }
 
-export function FoodFields({ value, onChange, showServings = false }) {
+export function FoodFields({ value, onChange, showServings = false, showReference = false }) {
   const set = (key) => (e) => onChange({ ...value, [key]: e.target.value })
 
   const setMacro = (key) => (e) => {
@@ -31,16 +33,40 @@ export function FoodFields({ value, onChange, showServings = false }) {
           autoComplete="off"
         />
       </div>
-      <div className={showServings ? 'grid-2' : undefined}>
-        <div className="field">
-          <label htmlFor="food-serving">Serving</label>
-          <input
-            id="food-serving"
-            value={value.servingLabel}
-            onChange={set('servingLabel')}
-            placeholder="100 g"
-          />
-        </div>
+      <div className={showServings || showReference ? 'grid-2' : undefined}>
+        {showReference ? (
+          <>
+            <div className="field">
+              <label htmlFor="food-reference-quantity">Reference amount</label>
+              <input
+                id="food-reference-quantity"
+                inputMode="decimal"
+                value={value.referenceQuantity}
+                onChange={set('referenceQuantity')}
+                placeholder="100"
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="food-reference-unit">Unit</label>
+              <input
+                id="food-reference-unit"
+                value={value.referenceUnit}
+                onChange={set('referenceUnit')}
+                placeholder="g"
+              />
+            </div>
+          </>
+        ) : (
+          <div className="field">
+            <label htmlFor="food-serving">Serving</label>
+            <input
+              id="food-serving"
+              value={value.servingLabel}
+              onChange={set('servingLabel')}
+              placeholder="100 g"
+            />
+          </div>
+        )}
         {showServings ? (
           <div className="field">
             <label htmlFor="food-servings">How many</label>
@@ -88,12 +114,16 @@ function NumField({ id, label, value, onChange, readOnly = false }) {
 
 export function parseFoodFields(value, { deriveCalories = false } = {}) {
   const servings = Math.max(0, Number(value.servings) || 1)
+  const referenceQuantity = Math.max(0.01, Number(value.referenceQuantity) || 1)
+  const referenceUnit = String(value.referenceUnit || 'serving').trim() || 'serving'
   const protein = Number(value.protein) || 0
   const carbs = Number(value.carbs) || 0
   const fat = Number(value.fat) || 0
   return {
     name: value.name.trim(),
-    servingLabel: (value.servingLabel || '1 serving').trim(),
+    servingLabel: (value.servingLabel || `${referenceQuantity} ${referenceUnit}`).trim(),
+    referenceQuantity,
+    referenceUnit,
     servings,
     calories: deriveCalories
       ? Number(formatDerivedCalories(protein, carbs, fat) || 0)

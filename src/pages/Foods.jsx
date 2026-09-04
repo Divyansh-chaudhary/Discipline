@@ -9,6 +9,14 @@ import { fmtCal, fmtG, round1 } from '../lib/format.js'
 import { searchUsda } from '../lib/usda.js'
 import { useData } from '../sync/DataContext.jsx'
 
+function referenceForFood(food) {
+  if (food.referenceQuantity != null) {
+    return { quantity: Number(food.referenceQuantity) || 1, unit: food.referenceUnit || 'serving' }
+  }
+  const match = String(food.servingLabel || '').match(/^\s*(\d+(?:\.\d+)?)\s*(.+?)\s*$/)
+  return match ? { quantity: Number(match[1]), unit: match[2] } : { quantity: 1, unit: 'serving' }
+}
+
 export function Foods() {
   const { online, customFoods, saveFood, removeFood, addLog } = useData()
   const foods = customFoods
@@ -27,16 +35,19 @@ export function Foods() {
 
   const openCreate = () => {
     setEditingId(null)
-    setForm(emptyFood)
+    setForm({ ...emptyFood, servingLabel: '' })
     setError('')
     setSheet('edit')
   }
 
   const openEdit = (food) => {
+    const reference = referenceForFood(food)
     setEditingId(food.id)
     setForm({
       name: food.name,
       servingLabel: food.servingLabel || '1 serving',
+      referenceQuantity: String(reference.quantity),
+      referenceUnit: reference.unit,
       servings: '1',
       calories: String(food.calories ?? ''),
       protein: String(food.protein ?? ''),
@@ -58,6 +69,8 @@ export function Foods() {
         {
           name: parsed.name,
           servingLabel: parsed.servingLabel,
+          referenceQuantity: parsed.referenceQuantity,
+          referenceUnit: parsed.referenceUnit,
           calories: parsed.calories,
           protein: parsed.protein,
           carbs: parsed.carbs,
@@ -84,6 +97,8 @@ export function Foods() {
   const fromUsda = (hit) => ({
     name: hit.brand ? `${hit.name} (${hit.brand})` : hit.name,
     servingLabel: hit.servingLabel,
+    referenceQuantity: '1',
+    referenceUnit: 'serving',
     servings: '1',
     calories: String(hit.calories ?? ''),
     protein: String(hit.protein ?? ''),
@@ -97,6 +112,8 @@ export function Foods() {
       await saveFood({
         name: parsed.name,
         servingLabel: parsed.servingLabel,
+        referenceQuantity: parsed.referenceQuantity,
+        referenceUnit: parsed.referenceUnit,
         calories: parsed.calories,
         protein: parsed.protein,
         carbs: parsed.carbs,
@@ -215,7 +232,7 @@ export function Foods() {
               <button className="grow" style={{ background: 'none', border: 0, padding: 0, textAlign: 'left' }} onClick={() => openEdit(food)}>
                 <div className="name">{food.name}</div>
                 <div className="meta">
-                  {food.servingLabel || '1 serving'} · {fmtCal(food.calories)} kcal
+                  Per {referenceForFood(food).quantity} {referenceForFood(food).unit} · {fmtCal(food.calories)} kcal
                 </div>
               </button>
               <button
@@ -244,7 +261,8 @@ export function Foods() {
             </>
           }
         >
-          <FoodFields value={form} onChange={setForm} />
+          <p className="sub">Enter the amount these macros describe, such as 100 g. You’ll enter the actual amount when logging it.</p>
+          <FoodFields value={form} onChange={setForm} showReference />
         </Sheet>
       ) : null}
     </div>
