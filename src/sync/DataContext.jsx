@@ -1,12 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { ApiError, api } from '../api/client.js'
 import { DEFAULT_TARGETS } from '../db/index.js'
-import { localDateKey } from '../lib/dates.js'
+import { localDateKey, shiftDateKey } from '../lib/dates.js'
 import { drainOutbox, subscribeSyncStatus } from './engine.js'
 import { enqueue, subscribeOutbox } from './outbox.js'
 
 const DataContext = createContext(null)
 const SESSION_KEY = 'discipline.session'
+const SNAPSHOT_KEY = 'discipline.snapshot'
 
 function emptyDiscipline() {
   return { profile: { key: 'xp', totalXp: 0 }, streaks: [], badges: [] }
@@ -26,6 +27,46 @@ function writeSession(next) {
   else localStorage.removeItem(SESSION_KEY)
 }
 
+/**
+ * Last bootstrap payload, kept so a reopen paints real data before the network
+ * answers. Cached days are marked stale so they still revalidate in the background.
+ */
+function readSnapshot(userId) {
+  if (!userId) return null
+  try {
+    const raw = localStorage.getItem(SNAPSHOT_KEY)
+    const parsed = raw ? JSON.parse(raw) : null
+    return parsed?.userId === userId ? parsed : null
+  } catch {
+    return null
+  }
+}
+
+function writeSnapshot(userId, snapshot) {
+  if (!userId) return
+  try {
+    localStorage.setItem(SNAPSHOT_KEY, JSON.stringify({ userId, ...snapshot }))
+  } catch {
+    /* storage full or blocked — cache is optional */
+  }
+}
+
+function clearSnapshot() {
+  try {
+    localStorage.removeItem(SNAPSHOT_KEY)
+  } catch {
+    /* ignore */
+  }
+}
+
+function staleDays(days) {
+  const out = {}
+  for (const [date, day] of Object.entries(days || {})) {
+    out[date] = { ...day, loaded: true, loading: false, unavailable: false, stale: true }
+  }
+  return out
+}
+
 function emptyDay() {
   return { logs: [], workout: null, sets: [], loaded: false, unavailable: false }
 }
@@ -34,26 +75,45 @@ function byName(a, b) {
   return String(a.name || '').localeCompare(String(b.name || ''))
 }
 
+function rangeDateKeys(from, to) {
+  if (!from || !to) return []
+  const keys = []
+  let cursor = from
+  while (cursor <= to) {
+    keys.push(cursor)
+    cursor = shiftDateKey(cursor, 1)
+  }
+  return keys
+}
+
 export function DataProvider({ children }) {
-  const [user, setUser] = useState(null)
-  const [authReady, setAuthReady] = useState(false)
-  const [settings, setSettings] = useState(DEFAULT_TARGETS)
-  const [customFoods, setCustomFoods] = useState([])
-  const [workoutTypes, setWorkoutTypes] = useState([])
-  const [days, setDays] = useState({})
-  const [discipline, setDiscipline] = useState(emptyDiscipline)
+  const [boot] = useState(() => {
+    const cachedUser = readSession()
+    return { user: cachedUser, snapshot: readSnapshot(cachedUser?.id) }
+  })
+  const cached = boot.snapshot
+
+  const [user, setUser] = useState(boot.user)
+  // A cached session lets the shell render before /api/auth/me answers.
+  const [authReady, setAuthReady] = useState(Boolean(boot.user))
+  const [settings, setSettings] = useState(cached?.settings || DEFAULT_TARGETS)
+  const [customFoods, setCustomFoods] = useState(cached?.customFoods || [])
+  const [workoutTypes, setWorkoutTypes] = useState(cached?.workoutTypes || [])
+  const [days, setDays] = useState(() => staleDays(cached?.days))
+  const [discipline, setDiscipline] = useState(cached?.discipline || emptyDiscipline)
   const [online, setOnline] = useState(
     typeof navigator !== 'undefined' ? navigator.onLine : true,
   )
   const [queued, setQueued] = useState(0)
   const [syncing, setSyncing] = useState(false)
   const [bootError, setBootError] = useState('')
-  const [ready, setReady] = useState(false)
+  const [ready, setReady] = useState(Boolean(cached))
   const userRef = useRef(null)
   const daysRef = useRef({})
   const typesRef = useRef([])
   const setTimers = useRef({})
   const ensuring = useRef({})
+  const didInitialSync = useRef(false)
 
   useEffect(() => {
     userRef.current = user
@@ -105,21 +165,51 @@ export function DataProvider({ children }) {
   )
 
   const applyBootstrap = useCallback((data, date) => {
-    if (data.settings) setSettings(data.settings)
-    if (data.customFoods) setCustomFoods([...data.customFoods].sort(byName))
-    if (data.workoutTypes) setWorkoutTypes([...data.workoutTypes].sort(byName))
+    const settingsNext = data.settings || DEFAULT_TARGETS
+    const foodsNext = data.customFoods ? [...data.customFoods].sort(byName) : []
+    const typesNext = data.workoutTypes ? [...data.workoutTypes].sort(byName) : []
+    if (data.settings) setSettings(settingsNext)
+    if (data.customFoods) setCustomFoods(foodsNext)
+    if (data.workoutTypes) setWorkoutTypes(typesNext)
     if (data.discipline) setDiscipline(data.discipline)
+
     const key = data.date || date
-    setDays((prev) => ({
-      ...prev,
-      [key]: {
-        logs: data.logs || [],
-        workout: data.workout || null,
-        sets: data.sets || [],
+    const fresh = {}
+    for (const [rangeDate, day] of Object.entries(data.range?.days || {})) {
+      fresh[rangeDate] = {
+        logs: day.logs || [],
+        workout: day.workout || null,
+        sets: day.sets || [],
         loaded: true,
+        loading: false,
         unavailable: false,
-      },
-    }))
+      }
+    }
+    fresh[key] = {
+      logs: data.logs || [],
+      workout: data.workout || null,
+      sets: data.sets || [],
+      loaded: true,
+      loading: false,
+      unavailable: false,
+    }
+    // Empty days inside the window are known-empty, not missing.
+    if (data.range) {
+      for (const rangeDate of rangeDateKeys(data.range.from, data.range.to)) {
+        if (!fresh[rangeDate]) {
+          fresh[rangeDate] = { ...emptyDay(), loaded: true, loading: false }
+        }
+      }
+    }
+    setDays((prev) => ({ ...prev, ...fresh }))
+
+    writeSnapshot(userRef.current?.id, {
+      settings: settingsNext,
+      customFoods: foodsNext,
+      workoutTypes: typesNext,
+      discipline: data.discipline || emptyDiscipline(),
+      days: fresh,
+    })
   }, [])
 
   const refresh = useCallback(
@@ -134,11 +224,17 @@ export function DataProvider({ children }) {
 
   const loadDay = useCallback(
     async (date) => {
+      let shouldFetch = true
       setDays((prev) => {
         const cur = prev[date]
-        if (cur?.loaded || cur?.loading) return prev
+        // Stale cache still renders, but revalidates behind the scenes.
+        if (cur?.loading || (cur?.loaded && !cur.stale)) {
+          shouldFetch = false
+          return prev
+        }
         return { ...prev, [date]: { ...(cur || emptyDay()), loading: true } }
       })
+      if (!shouldFetch) return
       if (typeof navigator !== 'undefined' && !navigator.onLine) {
         setDays((prev) => {
           const cur = prev[date] || emptyDay()
@@ -174,7 +270,14 @@ export function DataProvider({ children }) {
     [],
   )
 
-  const loadRange = useCallback(async (from, to) => {
+  const loadRange = useCallback(async (from, to, { force = false } = {}) => {
+    if (!force) {
+      const known = rangeDateKeys(from, to)
+      const cache = daysRef.current || {}
+      const covered = known.every((date) => cache[date]?.loaded && !cache[date]?.stale)
+      // Bootstrap already ships the trailing week, so skip the duplicate call.
+      if (covered) return { days: {}, from, to, cached: true }
+    }
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       throw new Error('Offline')
     }
@@ -196,23 +299,23 @@ export function DataProvider({ children }) {
     return data
   }, [])
 
+  // Validates the cached session without blocking the first paint.
   useEffect(() => {
     let cancelled = false
     api('/api/auth/me')
       .then((data) => {
         if (cancelled) return
-        setUser(data.user)
+        setUser((prev) => (prev?.id === data.user?.id ? prev : data.user))
         writeSession(data.user)
       })
       .catch((err) => {
         if (cancelled) return
-        const cached = readSession()
         if (err instanceof ApiError && err.status === 401) {
           writeSession(null)
+          clearSnapshot()
           setUser(null)
-          return
         }
-        setUser(cached)
+        // Any other failure keeps the cached session so offline opens still work.
       })
       .finally(() => {
         if (!cancelled) setAuthReady(true)
@@ -224,26 +327,34 @@ export function DataProvider({ children }) {
 
   useEffect(() => {
     if (!user) {
+      didInitialSync.current = false
       setReady(false)
       return undefined
     }
+    if (didInitialSync.current) return undefined
+    didInitialSync.current = true
+
     let cancelled = false
-    setReady(false)
+    const hadCache = daysRef.current && Object.keys(daysRef.current).length > 0
+    if (!hadCache) setReady(false)
+
     refresh()
       .then(async () => {
         if (cancelled) return
         try {
-          await drainOutbox(user.id)
-          if (!cancelled) await refresh()
+          const result = await drainOutbox(user.id)
+          // Only pay for a second bootstrap when queued writes actually landed.
+          if (!cancelled && result?.drained > 0) await refresh()
         } catch (err) {
           if (err instanceof ApiError && err.status === 401) {
             writeSession(null)
+            clearSnapshot()
             setUser(null)
           }
         }
       })
       .catch((err) => {
-        if (!cancelled) setBootError(err.message || 'Could not load account data')
+        if (!cancelled && !hadCache) setBootError(err.message || 'Could not load account data')
       })
       .finally(() => {
         if (!cancelled) setReady(true)
@@ -275,12 +386,21 @@ export function DataProvider({ children }) {
     }
   }, [])
 
+  // Flush queued writes when the connection comes back, not on every mount.
+  const wasOffline = useRef(!online)
   useEffect(() => {
-    if (!online || !user) return undefined
+    if (!user) return undefined
+    if (!online) {
+      wasOffline.current = true
+      return undefined
+    }
+    if (!wasOffline.current) return undefined
+    wasOffline.current = false
+
     let cancelled = false
     drainOutbox(user.id)
-      .then(async () => {
-        if (!cancelled) await refresh()
+      .then(async (result) => {
+        if (!cancelled && result?.drained > 0) await refresh()
       })
       .catch((err) => {
         if (err instanceof ApiError && err.status === 401) setUser(null)
@@ -311,6 +431,7 @@ export function DataProvider({ children }) {
       /* cookie clear still happens locally */
     }
     writeSession(null)
+    clearSnapshot()
     setUser(null)
     setSettings(DEFAULT_TARGETS)
     setCustomFoods([])
@@ -344,6 +465,25 @@ export function DataProvider({ children }) {
         () => patchDay(payload.date, (d) => ({ logs: [...d.logs, row] })),
       )
       return row
+    },
+    [commit, patchDay],
+  )
+
+  /** One request for a whole pantry selection instead of one per food. */
+  const addLogs = useCallback(
+    async (date, items) => {
+      const rows = items.map((item) => ({ id: crypto.randomUUID(), date, ...item }))
+      if (!rows.length) return []
+      await commit(
+        {
+          op: 'createMany',
+          resource: 'foodLogs',
+          entityId: rows[0].id,
+          payload: { date, items: rows },
+        },
+        () => patchDay(date, (d) => ({ logs: [...d.logs, ...rows] })),
+      )
+      return rows
     },
     [commit, patchDay],
   )
@@ -501,6 +641,93 @@ export function DataProvider({ children }) {
     [commit, patchDay],
   )
 
+  /** Commits every set of one exercise at once, after local editing. */
+  const saveExerciseSets = useCallback(
+    async (date, exercise, draftSets) => {
+      const session = await ensureWorkout(date)
+      if (!session) return null
+      const rows = draftSets.map((set, index) => ({
+        id: set.id && !set.local ? set.id : crypto.randomUUID(),
+        workoutId: session.id,
+        date,
+        exercise,
+        reps: Number(set.reps) || 0,
+        weight: Number(set.weight) || 0,
+        setNumber: index + 1,
+      }))
+      await commit(
+        {
+          op: 'replaceExercise',
+          resource: 'workoutSets',
+          entityId: `${session.id}:${exercise}`,
+          payload: { workoutId: session.id, date, exercise, sets: rows },
+        },
+        () =>
+          patchDay(date, (d) => ({
+            sets: [...d.sets.filter((row) => row.exercise !== exercise), ...rows],
+          })),
+      )
+      return rows
+    },
+    [commit, ensureWorkout, patchDay],
+  )
+
+  /** Replaces several exercises at once — used when loading a planned split. */
+  const saveSessionSets = useCallback(
+    async (date, groups) => {
+      const session = await ensureWorkout(date)
+      if (!session || !groups.length) return null
+      const payloadGroups = groups.map((group) => ({
+        exercise: group.exercise,
+        sets: group.sets.map((set, index) => ({
+          id: set.id && !set.local ? set.id : crypto.randomUUID(),
+          reps: Number(set.reps) || 0,
+          weight: Number(set.weight) || 0,
+          setNumber: index + 1,
+        })),
+      }))
+      const rows = payloadGroups.flatMap((group) =>
+        group.sets.map((set) => ({
+          ...set,
+          workoutId: session.id,
+          date,
+          exercise: group.exercise,
+        })),
+      )
+      const names = new Set(payloadGroups.map((group) => group.exercise))
+      await commit(
+        {
+          op: 'replaceSession',
+          resource: 'workoutSets',
+          entityId: session.id,
+          payload: { workoutId: session.id, date, groups: payloadGroups },
+        },
+        () =>
+          patchDay(date, (d) => ({
+            sets: [...d.sets.filter((row) => !names.has(row.exercise)), ...rows],
+          })),
+      )
+      return rows
+    },
+    [commit, ensureWorkout, patchDay],
+  )
+
+  const completeWorkout = useCallback(
+    async (date, workoutId, completed) => {
+      const completedAt = completed ? Date.now() : null
+      await commit(
+        {
+          op: 'complete',
+          resource: 'workouts',
+          entityId: workoutId,
+          payload: { workoutId, date, completed, completedAt },
+        },
+        () => patchDay(date, (d) => ({ workout: d.workout ? { ...d.workout, completedAt } : d.workout })),
+      )
+    },
+    [commit, patchDay],
+  )
+
   const removeExercise = useCallback(
     async (date, workoutId, exercise) => {
       await commit(
@@ -599,6 +826,7 @@ export function DataProvider({ children }) {
       loadRange,
       saveTargets,
       addLog,
+      addLogs,
       removeLog,
       saveFood,
       removeFood,
@@ -608,6 +836,9 @@ export function DataProvider({ children }) {
       updateSet,
       removeSet,
       removeExercise,
+      saveExerciseSets,
+      saveSessionSets,
+      completeWorkout,
       createWorkoutType,
       updateWorkoutType,
       activateWorkoutType,
@@ -635,6 +866,7 @@ export function DataProvider({ children }) {
       loadRange,
       saveTargets,
       addLog,
+      addLogs,
       removeLog,
       saveFood,
       removeFood,
@@ -644,6 +876,9 @@ export function DataProvider({ children }) {
       updateSet,
       removeSet,
       removeExercise,
+      saveExerciseSets,
+      saveSessionSets,
+      completeWorkout,
       createWorkoutType,
       updateWorkoutType,
       activateWorkoutType,

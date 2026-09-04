@@ -9,9 +9,10 @@ import { OfflineEmpty, PageHead } from '../components/SyncChip.jsx'
 import { totalsFromLogs } from '../db/index.js'
 import { useBusy, useBusyKey } from '../lib/busy.js'
 import { formatPrettyDate, localDateKey } from '../lib/dates.js'
-import { pulseFromState } from '../lib/discipline.js'
-import { fmtCal, fmtG, round0, round1 } from '../lib/format.js'
+import { calorieStarBand, pulseFromState } from '../lib/discipline.js'
+import { fmtCal, macroSummary, round0, round1 } from '../lib/format.js'
 import { lastNDates, weekReview } from '../lib/week.js'
+import { exerciseLine, sessionSummary } from '../lib/workouts.js'
 import { useData, useDateRange, useDay } from '../sync/DataContext.jsx'
 
 const MIN_SERVINGS = 1
@@ -55,11 +56,12 @@ function cleanQuantity(value, delta = 0) {
 
 export function Today() {
   const date = localDateKey()
-  const { settings, customFoods, discipline, addLog, removeLog } = useData()
-  const { logs, sets, loaded, unavailable } = useDay(date)
+  const { settings, customFoods, discipline, addLog, addLogs, removeLog } = useData()
+  const { logs, sets, workout, loaded, unavailable } = useDay(date)
   const pantry = customFoods
   const totals = totalsFromLogs(logs)
   const pulse = pulseFromState({ logs, totals, targets: settings, setCount: sets.length })
+  const starBand = calorieStarBand(settings.calories)
 
   const [sheet, setSheet] = useState(null)
   const [form, setForm] = useState(emptyFood)
@@ -135,12 +137,11 @@ export function Today() {
 
   const logPantrySelection = () =>
     runPantry(async () => {
-      const selected = pantry.filter((food) => Object.hasOwn(pantrySelection, food.id))
-      await Promise.all(
-        selected.map((food) => {
+      const items = pantry
+        .filter((food) => Object.hasOwn(pantrySelection, food.id))
+        .map((food) => {
           const servings = cleanQuantity(pantrySelection[food.id])
-          return addLog({
-            date,
+          return {
             name: food.name,
             servings,
             calories: round1((food.calories || 0) * servings),
@@ -149,37 +150,34 @@ export function Today() {
             fat: round1((food.fat || 0) * servings),
             source: 'custom',
             customFoodId: food.id,
-          })
-        }),
-      )
+          }
+        })
+      await addLogs(date, items)
       setSheet(null)
     })
 
   return (
-    <div className="page">
+    <div className="page with-action-bar">
       <PageHead kicker="Today" title={formatPrettyDate(date)} compact />
 
       <section className="card">
         <RemainingHero totals={totals} targets={settings} />
         <MacroBars totals={totals} targets={settings} includeCalories={false} />
+        <p className="tiny" style={{ marginTop: 12 }}>
+          Calorie star zone {starBand.low}–{starBand.high} kcal
+          {pulse.calories ? ' · earned' : ''}
+        </p>
       </section>
 
       <WeekBalanceCard today={date} targets={settings} />
+
+      <SessionSummaryCard sets={sets} workout={workout} />
 
       <TodayPathCard pulse={pulse} xp={discipline.profile?.totalXp || 0} streaks={discipline.streaks} />
 
       <div className="section-title">
         <h2>Diary</h2>
         <span className="tiny">{logs.length} item{logs.length === 1 ? '' : 's'}</span>
-      </div>
-
-      <div className="btn-row" style={{ marginBottom: 12 }}>
-        <button className="primary" onClick={openManual}>
-          Log food
-        </button>
-        <button className="secondary" onClick={openPantry}>
-          From pantry
-        </button>
       </div>
 
       {!loaded && !unavailable ? (
@@ -198,12 +196,12 @@ export function Today() {
             {logs.map((row) => (
               <div className="row" key={row.id}>
                 <div className="grow">
-                  <div className="name">{row.name}</div>
-                  <div className="meta">
-                    {row.servings}× · P {fmtG(row.protein)} · C {fmtG(row.carbs)} · F {fmtG(row.fat)}
+                  <div className="name">
+                    {row.name}
+                    {row.servings > 1 ? <span className="tiny"> ×{row.servings}</span> : null}
                   </div>
+                  <div className="meta">{macroSummary(row)}</div>
                 </div>
-                <div className="kcal">{fmtCal(row.calories)}</div>
                 <button
                   className={`icon-btn${removingId === row.id ? ' is-busy' : ''}`}
                   aria-label={`Remove ${row.name}`}
@@ -309,6 +307,72 @@ export function Today() {
           )}
         </Sheet>
       ) : null}
+
+      <div className="action-bar">
+        <div className="action-bar-inner">
+          <button className="primary" onClick={openManual}>
+            Log food
+          </button>
+          <button className="secondary" onClick={openPantry}>
+            From pantry
+          </button>
+        </div>
+      </div>
     </div>
+  )
+}
+
+function SessionSummaryCard({ sets, workout }) {
+  const { groups, exercises, setCount, volume } = sessionSummary(sets)
+  const done = Boolean(workout?.completedAt)
+
+  return (
+    <section className="card" style={{ marginTop: 12 }}>
+      <div className="page-head-row">
+        <div>
+          <p className="tiny">Today’s training</p>
+          <p className="path-count">{workout?.name || 'No session'}</p>
+        </div>
+        <Link className="chip" to="/workout">
+          {setCount ? 'Open' : 'Start'} ›
+        </Link>
+      </div>
+
+      {setCount === 0 ? (
+        <p className="sub" style={{ marginTop: 8 }}>
+          Nothing logged yet today.
+        </p>
+      ) : (
+        <>
+          {done ? (
+            <p className="tiny" style={{ marginTop: 6 }}>
+              Completed
+            </p>
+          ) : null}
+          <div className="summary-grid">
+            <div className="summary-stat">
+              <strong>{exercises}</strong>
+              <span>Exercises</span>
+            </div>
+            <div className="summary-stat">
+              <strong>{setCount}</strong>
+              <span>Sets</span>
+            </div>
+            <div className="summary-stat">
+              <strong>{fmtCal(volume)}</strong>
+              <span>kg volume</span>
+            </div>
+          </div>
+          <div className="summary-lines">
+            {groups.map((group) => (
+              <div className="summary-line" key={group.exercise}>
+                <span>{group.exercise}</span>
+                <span>{exerciseLine(group.sets)}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </section>
   )
 }

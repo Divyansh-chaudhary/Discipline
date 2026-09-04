@@ -1,6 +1,6 @@
 import { api, ApiError } from '../api/client.js'
 import { localDateKey } from '../lib/dates.js'
-import { nextOutbox, queuedCount, removeOutbox } from './outbox.js'
+import { nextOutbox, pendingCount, queuedCount, removeOutbox } from './outbox.js'
 
 let draining = false
 let drainPromise = null
@@ -35,6 +35,8 @@ async function runDrain(userId) {
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
     return { drained: 0, offline: true }
   }
+  // Nothing queued: return without touching the offline database.
+  if (pendingCount() === 0) return { drained: 0 }
   draining = true
   syncing = true
   emit()

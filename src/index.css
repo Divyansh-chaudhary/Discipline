@@ -137,7 +137,40 @@ p {
 
 .page {
   flex: 1;
-  padding: 20px 18px calc(var(--nav-h) + 28px + env(safe-area-inset-bottom));
+  /* Top inset keeps headers clear of the status bar in standalone / notched devices. */
+  padding: calc(18px + env(safe-area-inset-top)) 18px
+    calc(var(--nav-h) + 28px + env(safe-area-inset-bottom));
+}
+
+/* Extra room so a floating action bar never covers the last row. */
+.page.with-action-bar {
+  padding-bottom: calc(var(--nav-h) + 92px + env(safe-area-inset-bottom));
+}
+
+.action-bar {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(var(--nav-h) + 10px + env(safe-area-inset-bottom));
+  z-index: 90;
+  width: min(430px, 100%);
+  padding: 0 18px;
+  pointer-events: none;
+}
+
+.action-bar-inner {
+  display: grid;
+  gap: 8px;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--paper-2) 78%, transparent);
+  backdrop-filter: blur(28px) saturate(1.4);
+  -webkit-backdrop-filter: blur(28px) saturate(1.4);
+  box-shadow: var(--inset), 0 12px 32px rgba(0, 0, 0, 0.32);
+  pointer-events: auto;
 }
 
 .page-head {
@@ -191,7 +224,7 @@ p {
   align-items: center;
   justify-content: center;
   min-height: 100dvh;
-  padding: 24px 18px calc(24px + env(safe-area-inset-bottom));
+  padding: calc(24px + env(safe-area-inset-top)) 18px calc(24px + env(safe-area-inset-bottom));
 }
 
 .auth-panel {
@@ -1140,6 +1173,83 @@ p {
   display: grid;
   gap: 10px;
   padding: 12px;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.summary-stat {
+  display: grid;
+  gap: 2px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--glass);
+  text-align: center;
+}
+
+.summary-stat strong {
+  font-family: var(--font-display);
+  font-size: 20px;
+  line-height: 1;
+}
+
+.summary-stat span {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.summary-lines {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.summary-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.summary-line span:first-child {
+  font-weight: 600;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.summary-line span:last-child {
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.dirty-chip {
+  color: var(--gold);
+  border-color: color-mix(in srgb, var(--gold) 40%, var(--line));
+  background: color-mix(in srgb, var(--gold) 12%, transparent);
+}
+
+.done-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--forest) 40%, var(--line));
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--forest) 12%, transparent);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .chip-row {

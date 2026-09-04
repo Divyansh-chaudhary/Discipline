@@ -15,6 +15,12 @@ export function fmtG(n) {
   return Number.isInteger(v) ? String(v) : v.toFixed(1)
 }
 
+/** Compact one-line macro read-out, e.g. "340kcal · 30P, 30C, 5F". */
+export function macroSummary(row) {
+  const macros = `${fmtG(row?.protein)}P, ${fmtG(row?.carbs)}C, ${fmtG(row?.fat)}F`
+  return `${fmtCal(row?.calories)}kcal · ${macros}`
+}
+
 export function caloriesFromMacros(protein, carbs, fat) {
   return (Number(protein) || 0) * 4 + (Number(carbs) || 0) * 4 + (Number(fat) || 0) * 9
 }

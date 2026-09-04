@@ -37,17 +37,14 @@ function streakFromDates(id, dates, today) {
   }
 }
 
+/** Two queries instead of one per workout, which used to dominate every mutation. */
 async function liftDates(userId) {
-  const workouts = await Workout.find({ userId }).lean()
-  if (!workouts.length) return []
-  const dates = []
-  await Promise.all(
-    workouts.map(async (workout) => {
-      const n = await WorkoutSet.countDocuments({ userId, workoutId: workout._id })
-      if (n > 0) dates.push(workout.date)
-    }),
-  )
-  return uniqueSortedDates(dates)
+  const workoutIds = await WorkoutSet.distinct('workoutId', { userId })
+  if (!workoutIds.length) return []
+  const workouts = await Workout.find({ userId, _id: { $in: workoutIds } })
+    .select('date')
+    .lean()
+  return uniqueSortedDates(workouts.map((workout) => workout.date))
 }
 
 function proteinHitDates(logs, targets) {
@@ -158,31 +155,37 @@ async function unlockBadges(userId, stats) {
 }
 
 export async function syncDiscipline(userId, today) {
-  const settings = (await Settings.findOne({ userId }).lean()) || DEFAULT_TARGETS
-  const logs = await FoodLog.find({ userId }).lean()
+  const [settingsRow, logs, sessionDates, workout, prevStreaks] = await Promise.all([
+    Settings.findOne({ userId }).lean(),
+    FoodLog.find({ userId }).select('date calories protein carbs fat').lean(),
+    liftDates(userId),
+    Workout.findOne({ userId, date: today }).select('_id').lean(),
+    Streak.find({ userId, id: { $in: STREAK_IDS } }).lean(),
+  ])
+  const settings = settingsRow || DEFAULT_TARGETS
   const todayLogs = logs.filter((row) => row.date === today)
   const totals = totalsFromLogs(todayLogs)
   const foodDates = uniqueSortedDates(logs.map((row) => row.date))
-  const sessionDates = await liftDates(userId)
-  const disciplineDates = foodDates.filter((date) => sessionDates.includes(date))
+  const sessionSet = new Set(sessionDates)
+  const disciplineDates = foodDates.filter((date) => sessionSet.has(date))
   const proteinDates = proteinHitDates(logs, settings)
 
-  const workout = await Workout.findOne({ userId, date: today }).lean()
   const setCount = workout
     ? await WorkoutSet.countDocuments({ userId, workoutId: workout._id })
     : 0
   const pulse = pulseFromState({ logs: todayLogs, totals, targets: settings, setCount })
 
-  const prevStreaks = await Streak.find({ userId, id: { $in: STREAK_IDS } }).lean()
   const nextStreaks = [
     streakFromDates('food', foodDates, today),
     streakFromDates('lift', sessionDates, today),
     streakFromDates('discipline', disciplineDates, today),
   ]
 
-  if (!(await Profile.findOne({ userId }))) {
-    await Profile.create({ userId, key: 'xp', totalXp: 0 })
-  }
+  await Profile.findOneAndUpdate(
+    { userId },
+    { $setOnInsert: { userId, key: 'xp', totalXp: 0 } },
+    { upsert: true },
+  )
 
   await Streak.bulkWrite(
     nextStreaks.map((row) => ({
@@ -196,7 +199,10 @@ export async function syncDiscipline(userId, today) {
 
   await awardXp(userId, today, pulse, nextStreaks, prevStreaks)
 
-  const pulseRows = await PulseDay.find({ userId }).lean()
+  const perfectDays = await PulseDay.countDocuments({
+    userId,
+    $or: [{ perfectXp: true }, { food: true, lift: true, protein: true, calories: true }],
+  })
   const proteinStreak = streakFromDates('protein', proteinDates, today)
   await unlockBadges(userId, {
     mealCount: logs.length,
@@ -204,7 +210,7 @@ export async function syncDiscipline(userId, today) {
     disciplineBest: nextStreaks.find((row) => row.id === 'discipline')?.best || 0,
     proteinDays: proteinDates.length,
     proteinBest: proteinStreak.best,
-    perfectDays: pulseRows.filter((row) => row.perfectXp || earnedStarCount(row) === 4).length,
+    perfectDays,
   })
 
   return loadDiscipline(userId)

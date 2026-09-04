@@ -6,8 +6,9 @@ import { OfflineEmpty, PageHead } from '../components/SyncChip.jsx'
 import { WeekReview } from '../components/WeekReview.jsx'
 import { totalsFromLogs } from '../db/index.js'
 import { formatPrettyDate, localDateKey, shiftDateKey } from '../lib/dates.js'
-import { fmtCal, fmtG } from '../lib/format.js'
+import { fmtCal, macroSummary } from '../lib/format.js'
 import { lastNDates } from '../lib/week.js'
+import { exerciseLine } from '../lib/workouts.js'
 import { useData, useDateRange, useDay } from '../sync/DataContext.jsx'
 
 export function History() {
@@ -125,12 +126,12 @@ function DayView({ date, setDate }) {
               {logs.map((row) => (
                 <div className="row" key={row.id}>
                   <div className="grow">
-                    <div className="name">{row.name}</div>
-                    <div className="meta">
-                      {row.servings}× · P {fmtG(row.protein)} C {fmtG(row.carbs)} F {fmtG(row.fat)}
+                    <div className="name">
+                      {row.name}
+                      {row.servings > 1 ? <span className="tiny"> ×{row.servings}</span> : null}
                     </div>
+                    <div className="meta">{macroSummary(row)}</div>
                   </div>
-                  <div className="kcal">{fmtCal(row.calories)}</div>
                 </div>
               ))}
             </div>
@@ -138,20 +139,21 @@ function DayView({ date, setDate }) {
 
           <div className="section-title">
             <h2>{workout?.name || 'Workout'}</h2>
+            {sets.length ? <span className="tiny">{sets.length} sets</span> : null}
           </div>
           {exercises.length === 0 ? (
             <div className="empty card">No lifts this day.</div>
           ) : (
-            <div className="stack">
-              {exercises.map((group) => (
-                <div className="card" key={group.exercise}>
-                  <h3 style={{ fontSize: 18 }}>{group.exercise}</h3>
-                  <p className="meta" style={{ marginTop: 6 }}>
-                    {group.sets.map((s) => `${s.reps}×${s.weight}kg`).join(' · ')}
-                  </p>
-                </div>
-              ))}
-            </div>
+            <section className="card">
+              <div className="summary-lines" style={{ marginTop: 0 }}>
+                {exercises.map((group) => (
+                  <div className="summary-line" key={group.exercise}>
+                    <span>{group.exercise}</span>
+                    <span>{exerciseLine(group.sets)}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
           )}
         </OfflineEmpty>
       )}

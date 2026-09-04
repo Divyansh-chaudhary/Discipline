@@ -19,12 +19,32 @@ export function groupSets(sets) {
   return order.map((exercise) => ({ exercise, sets: map.get(exercise) }))
 }
 
+/** Headline numbers for a session: exercises, sets, and total load moved. */
+export function sessionSummary(sets = []) {
+  const groups = groupSets(sets)
+  const volume = sets.reduce(
+    (total, set) => total + (Number(set.reps) || 0) * (Number(set.weight) || 0),
+    0,
+  )
+  return { groups, exercises: groups.length, setCount: sets.length, volume }
+}
+
+/** "4×8 · 60kg" style line for one exercise. */
+export function exerciseLine(sets = []) {
+  if (!sets.length) return 'No sets'
+  const weights = [...new Set(sets.map((set) => Number(set.weight) || 0))]
+  const reps = [...new Set(sets.map((set) => Number(set.reps) || 0))]
+  const repPart = reps.length === 1 ? `${sets.length}×${reps[0]}` : sets.map((s) => s.reps).join('/')
+  const weightPart = weights.length === 1 ? `${weights[0]}kg` : `${Math.min(...weights)}–${Math.max(...weights)}kg`
+  return `${repPart} · ${weightPart}`
+}
+
 /**
  * Copies a planned split into the day's session, topping up to the planned set
  * count so re-running it never duplicates sets already logged.
  */
 export function useSplitStarter(date, { redirectTo } = {}) {
-  const { ensureWorkout, renameWorkout, addSet } = useData()
+  const { ensureWorkout, renameWorkout, saveSessionSets } = useData()
   const { workout, sets } = useDay(date)
   const navigate = useNavigate()
 
@@ -33,22 +53,29 @@ export function useSplitStarter(date, { redirectTo } = {}) {
       const title = `${type.name} · ${split.name}`
       const session = workout ?? (await ensureWorkout(date, title))
       if (!session) return
-      await renameWorkout(date, session.id, title)
-      for (const exercise of split.exercises || []) {
-        const logged = sets.filter((set) => set.exercise === exercise.name).length
-        const missing = Math.max(0, (Number(exercise.sets) || 1) - logged)
-        for (let index = 0; index < missing; index += 1) {
-          await addSet(date, {
-            workoutId: session.id,
-            exercise: exercise.name,
-            reps: Number(exercise.reps) || 0,
-            weight: Number(exercise.weight) || 0,
-            setNumber: logged + index + 1,
+
+      // Build the full target session locally, then persist it in one request.
+      const groups = (split.exercises || []).map((exercise) => {
+        const logged = sets.filter((set) => set.exercise === exercise.name)
+        const target = Math.max(logged.length, Number(exercise.sets) || 1)
+        const rows = []
+        for (let index = 0; index < target; index += 1) {
+          const existing = logged[index]
+          rows.push({
+            id: existing?.id,
+            reps: existing ? existing.reps : Number(exercise.reps) || 0,
+            weight: existing ? existing.weight : Number(exercise.weight) || 0,
           })
         }
-      }
+        return { exercise: exercise.name, sets: rows }
+      })
+
+      await Promise.all([
+        renameWorkout(date, session.id, title),
+        groups.length ? saveSessionSets(date, groups) : Promise.resolve(),
+      ])
       if (redirectTo) navigate(redirectTo)
     },
-    [addSet, date, ensureWorkout, navigate, redirectTo, renameWorkout, sets, workout],
+    [date, ensureWorkout, navigate, redirectTo, renameWorkout, saveSessionSets, sets, workout],
   )
 }

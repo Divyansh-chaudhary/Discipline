@@ -64,6 +64,7 @@ const workoutSchema = new Schema(
     userId: { type: String, required: true, index: true },
     date: { type: String, required: true },
     name: { type: String, default: 'Session' },
+    completedAt: { type: Number, default: null },
   },
   { timestamps: true },
 )

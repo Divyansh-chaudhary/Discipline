@@ -1,5 +1,6 @@
 import { DEFAULT_TARGETS } from './disciplineShared.js'
 import { loadDiscipline, syncDiscipline } from './discipline.js'
+import { shiftDateKey } from './dates.js'
 import { newId, toClient, toClientList } from './json.js'
 import {
   CustomFood,
@@ -15,16 +16,18 @@ import {
 export { DEFAULT_TARGETS }
 
 export async function ensureUserDefaults(userId) {
-  await Settings.findOneAndUpdate(
-    { userId },
-    { $setOnInsert: { userId, ...DEFAULT_TARGETS } },
-    { upsert: true },
-  )
-  await Profile.findOneAndUpdate(
-    { userId },
-    { $setOnInsert: { userId, key: 'xp', totalXp: 0 } },
-    { upsert: true },
-  )
+  await Promise.all([
+    Settings.findOneAndUpdate(
+      { userId },
+      { $setOnInsert: { userId, ...DEFAULT_TARGETS } },
+      { upsert: true },
+    ),
+    Profile.findOneAndUpdate(
+      { userId },
+      { $setOnInsert: { userId, key: 'xp', totalXp: 0 } },
+      { upsert: true },
+    ),
+  ])
 }
 
 export async function getSettings(userId) {
@@ -137,6 +140,35 @@ export async function deleteLog(userId, entityId) {
   return { id: entityId }
 }
 
+/** Writes a whole pantry selection in one round trip; upserts keep retries safe. */
+export async function createLogs(userId, payload) {
+  const items = Array.isArray(payload?.items) ? payload.items : []
+  const rows = items
+    .map((item) => ({
+      _id: String(item.id || newId()),
+      userId,
+      date: item.date || payload.date,
+      name: String(item.name || '').trim(),
+      servings: Number(item.servings) || 1,
+      calories: Number(item.calories) || 0,
+      protein: Number(item.protein) || 0,
+      carbs: Number(item.carbs) || 0,
+      fat: Number(item.fat) || 0,
+      source: item.source || 'custom',
+      customFoodId: item.customFoodId || null,
+      fdcId: item.fdcId ?? null,
+    }))
+    .filter((row) => row.date && row.name)
+
+  if (!rows.length) throw Object.assign(new Error('Nothing to log'), { status: 400 })
+  await FoodLog.bulkWrite(
+    rows.map((row) => ({
+      updateOne: { filter: { _id: row._id, userId }, update: { $set: row }, upsert: true },
+    })),
+  )
+  return rows.map((row) => toClient(row))
+}
+
 export async function getOrCreateWorkout(userId, date, name = 'Session', entityId) {
   const existing = await Workout.findOne({ userId, date })
   if (existing) return toClient(existing)
@@ -164,6 +196,9 @@ export async function updateWorkout(userId, entityId, payload) {
   }
   if (!row) throw Object.assign(new Error('Workout not found'), { status: 404 })
   if (payload.name != null) row.name = String(payload.name).trim() || row.name
+  if (payload.completedAt !== undefined) {
+    row.completedAt = payload.completedAt === null ? null : Number(payload.completedAt) || null
+  }
   await row.save()
   return toClient(row)
 }
@@ -243,6 +278,83 @@ export async function deleteExercise(userId, workoutId, exercise) {
   return { workoutId, exercise }
 }
 
+/**
+ * Saves every set of one exercise in a single call, so the client can keep
+ * reps/weight edits local until the user presses save.
+ */
+export async function replaceExerciseSets(userId, payload) {
+  const exercise = String(payload.exercise || '').trim()
+  if (!exercise) throw Object.assign(new Error('Exercise is required'), { status: 400 })
+
+  let workout = await resolveWorkout(userId, payload)
+  if (!workout && payload.date) {
+    const created = await getOrCreateWorkout(userId, payload.date, payload.workoutName, payload.workoutId)
+    workout = await Workout.findOne({ _id: created.id, userId })
+  }
+  if (!workout) throw Object.assign(new Error('Workout not found'), { status: 400 })
+
+  const workoutId = String(workout._id)
+  const rows = (payload.sets || []).map((set, index) => ({
+    _id: String(set.id || newId()),
+    userId,
+    workoutId,
+    date: payload.date || workout.date,
+    exercise,
+    reps: Number(set.reps) || 0,
+    weight: Number(set.weight) || 0,
+    setNumber: index + 1,
+  }))
+
+  await WorkoutSet.deleteMany({ userId, workoutId, exercise })
+  if (rows.length) await WorkoutSet.insertMany(rows)
+  return { workoutId, exercise, sets: rows.map((row) => toClient(row)) }
+}
+
+/** Writes a whole session (e.g. a split being loaded) in one request. */
+export async function replaceSessionSets(userId, payload) {
+  const groups = (payload.groups || [])
+    .map((group) => ({ exercise: String(group.exercise || '').trim(), sets: group.sets || [] }))
+    .filter((group) => group.exercise)
+  if (!groups.length) return { workoutId: null, groups: [] }
+
+  let workout = await resolveWorkout(userId, payload)
+  if (!workout && payload.date) {
+    const created = await getOrCreateWorkout(userId, payload.date, payload.workoutName, payload.workoutId)
+    workout = await Workout.findOne({ _id: created.id, userId })
+  }
+  if (!workout) throw Object.assign(new Error('Workout not found'), { status: 400 })
+
+  const workoutId = String(workout._id)
+  const rows = groups.flatMap((group) =>
+    group.sets.map((set, index) => ({
+      _id: String(set.id || newId()),
+      userId,
+      workoutId,
+      date: payload.date || workout.date,
+      exercise: group.exercise,
+      reps: Number(set.reps) || 0,
+      weight: Number(set.weight) || 0,
+      setNumber: index + 1,
+    })),
+  )
+
+  await WorkoutSet.deleteMany({
+    userId,
+    workoutId,
+    exercise: { $in: groups.map((group) => group.exercise) },
+  })
+  if (rows.length) await WorkoutSet.insertMany(rows)
+  return { workoutId, sets: rows.map((row) => toClient(row)) }
+}
+
+export async function setWorkoutCompletion(userId, payload) {
+  const workout = await resolveWorkout(userId, payload)
+  if (!workout) throw Object.assign(new Error('Workout not found'), { status: 404 })
+  workout.completedAt = payload.completed ? Number(payload.completedAt) || Date.now() : null
+  await workout.save()
+  return toClient(workout)
+}
+
 function normalizePlannedExercises(exercises = []) {
   return exercises
     .map((exercise) => ({
@@ -269,8 +381,13 @@ function normalizeSplits(splits = []) {
  * Folds pre-rewrite templates into workout types, merging rows that share a
  * name so the old duplicate-per-save behaviour collapses into one type.
  */
+// Warm-instance guard so the legacy lookup costs one query per user, not one per request.
+const migrationChecked = new Set()
+
 async function migrateLegacyTemplates(userId) {
+  if (migrationChecked.has(userId)) return
   const legacy = await LegacyWorkoutTemplate.find({ userId }).lean()
+  migrationChecked.add(userId)
   if (!legacy.length) return
 
   const existing = await WorkoutType.find({ userId }).lean()
@@ -389,16 +506,24 @@ export async function getRange(userId, from, to) {
   return { from, to, days }
 }
 
+const WEEK_SPAN = 6
+
+/**
+ * One round trip for everything the app needs to paint: today, the trailing
+ * week used by the balance view, pantry, workout types, and discipline.
+ */
 export async function bootstrap(userId, date) {
-  await ensureUserDefaults(userId)
-  const [settings, customFoods, workoutTypes, day, discipline] = await Promise.all([
+  const from = shiftDateKey(date, -WEEK_SPAN)
+  const [settings, customFoods, workoutTypes, range, discipline] = await Promise.all([
     getSettings(userId),
     listFoods(userId),
     listWorkoutTypes(userId),
-    getDay(userId, date),
+    getRange(userId, from, date),
     loadDiscipline(userId),
+    ensureUserDefaults(userId),
   ])
-  return { settings, customFoods, workoutTypes, ...day, discipline }
+  const today = range.days[date] || { logs: [], workout: null, sets: [] }
+  return { settings, customFoods, workoutTypes, date, ...today, discipline, range }
 }
 
 export async function applyMutation(userId, mutation, clientDate) {
@@ -418,6 +543,8 @@ export async function applyMutation(userId, mutation, clientDate) {
     entity = await deleteFood(userId, entityId)
   } else if (resource === 'foodLogs' && op === 'create') {
     entity = await createLog(userId, payload, entityId)
+  } else if (resource === 'foodLogs' && op === 'createMany') {
+    entity = await createLogs(userId, payload)
   } else if (resource === 'foodLogs' && op === 'delete') {
     entity = await deleteLog(userId, entityId)
   } else if (resource === 'workouts' && op === 'create') {
@@ -430,6 +557,12 @@ export async function applyMutation(userId, mutation, clientDate) {
     entity = await updateSet(userId, entityId, payload)
   } else if (resource === 'workoutSets' && op === 'delete') {
     entity = await deleteSet(userId, entityId)
+  } else if (resource === 'workoutSets' && op === 'replaceExercise') {
+    entity = await replaceExerciseSets(userId, payload)
+  } else if (resource === 'workoutSets' && op === 'replaceSession') {
+    entity = await replaceSessionSets(userId, payload)
+  } else if (resource === 'workouts' && op === 'complete') {
+    entity = await setWorkoutCompletion(userId, { ...payload, workoutId: payload.workoutId || entityId })
   } else if (resource === 'workoutExercises' && op === 'delete') {
     entity = await deleteExercise(userId, payload.workoutId || entityId, payload.exercise)
   } else if (resource === 'workoutTypes' && (op === 'create' || op === 'update')) {

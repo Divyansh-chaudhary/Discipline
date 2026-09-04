@@ -54,6 +54,12 @@ export function pulseFromState({ logs, totals, targets, setCount }) {
   return { food, lift, protein, calories }
 }
 
+/** The window that earns the calorie star: target ±10%, over or under. */
+export function calorieStarBand(target) {
+  const value = Number(target) || 0
+  return { low: Math.round(value * 0.9), high: Math.round(value * 1.1) }
+}
+
 export function earnedStarCount(pulse) {
   return PULSE_KEYS.filter((key) => pulse?.[key]).length
 }
