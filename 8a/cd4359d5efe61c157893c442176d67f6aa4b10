@@ -1,0 +1,103 @@
+src/sync/engine.js
+  s_5de23ca1c08ccc::t_6e255791732420 3
+  s_5de23ca1c08ccc::t_f5f7c8395e04fe 38-39
+src/pages/History.jsx
+  s_5de23ca1c08ccc::t_005b3bce4bf39f 9,11
+  s_5de23ca1c08ccc::t_a411f36446fa93 129-131,133
+  s_5de23ca1c08ccc::t_b5df9245e20bd1 142,147-156
+src/main.jsx
+  s_5de23ca1c08ccc::t_da0e251f9ceb8f 17-25
+src/lib/format.js
+  s_5de23ca1c08ccc::t_614d62833e8931 18-23
+src/lib/discipline.js
+  s_5de23ca1c08ccc::t_f6fbf2c2cf6d6a 57-62
+src/pages/Today.jsx
+  s_5de23ca1c08ccc::t_b88e8f4fc88c21 12
+  s_5de23ca1c08ccc::t_f961a6a28108c4 310-320,324-376
+  s_5de23ca1c08ccc::t_331ebf9b935e8e 140-142,144,153-155
+  s_5de23ca1c08ccc::t_68a3cf6a6b866b 60
+  s_5de23ca1c08ccc::t_4eae8c4389a399 13,15
+  s_5de23ca1c08ccc::t_e535f518f3758b 174-175
+  s_5de23ca1c08ccc::t_df2845b2545bf3 166-169
+  s_5de23ca1c08ccc::t_65c7fcdd0272e9 160
+  s_5de23ca1c08ccc::t_5d53dd34fa24d3 59
+  s_5de23ca1c08ccc::t_fae271fb0a0771 64
+  s_5de23ca1c08ccc::t_24777135b74bc3 199-201,203
+  s_5de23ca1c08ccc::t_8666c3d02d86fd 377-378
+src/index.css
+  s_5de23ca1c08ccc::t_c0e81478bd0432 140-173
+  s_5de23ca1c08ccc::t_af570ff497a7ec 227
+  s_5de23ca1c08ccc::t_61586c7a9b3a23 1178-1254
+src/pages/Workout.jsx
+  s_5de23ca1c08ccc::t_2b49e3067bc229 8-9,12-27,35-36,47-52,61-62,64-142,151-157,160,163-165,168-185,187,249,255,258-261,263,265-266,268,271,279-281,285,290,293-295,297,302-316,325,329-331,335,349,353,381-417,421-457
+server/models.js
+  s_5de23ca1c08ccc::t_5030704b1c9130 67
+server/store.js
+  s_5de23ca1c08ccc::t_b9022b6132e195 562-563
+  s_5de23ca1c08ccc::t_193da97bfc480c 3
+  s_5de23ca1c08ccc::t_14e66d98aa4ebd 281-312,350-357
+  s_5de23ca1c08ccc::t_7368968add3dd1 199-201
+  s_5de23ca1c08ccc::t_7d11a1085a8e01 313-349
+  s_5de23ca1c08ccc::t_db383daa19518b 19-30
+  s_5de23ca1c08ccc::t_e1c0dba3c53fcf 509-514,516-517,521,523,525-526
+  s_5de23ca1c08ccc::t_d4b1b0b6141ace 546-547
+  s_5de23ca1c08ccc::t_b6c7a6024fe30a 560-561,564-565
+  s_5de23ca1c08ccc::t_d635e8839f3ae3 384-386,388,390
+  s_5de23ca1c08ccc::t_ff99be14ebbd81 143-171
+server/discipline.js
+  s_5de23ca1c08ccc::t_71649ea7ecef1c 40,42-47
+  s_5de23ca1c08ccc::t_1da2c35da664c9 202-205,213
+  s_5de23ca1c08ccc::t_d4e4e2f70c62de 158-165,169-170,184-188
+src/App.jsx
+  s_5de23ca1c08ccc::t_ccc27ce33d20af 1,9-33,40,68-81
+src/sync/DataContext.jsx
+  s_5de23ca1c08ccc::t_05468388b6ac7d 389-390,392-399,402-403
+  s_5de23ca1c08ccc::t_afa35e5460f550 90,92-94,96,98
+  s_5de23ca1c08ccc::t_8c9cefeebdf206 68,78-88
+  s_5de23ca1c08ccc::t_ddaa17e37c0742 91,95,97,99-103,110,116
+  s_5de23ca1c08ccc::t_35b732586dd6f1 472-490
+  s_5de23ca1c08ccc::t_0a6c602cd295c4 302,308,315,318,330,334-336,338-340,345-347,351,357
+  s_5de23ca1c08ccc::t_e35bc947ac32f1 829,839,841
+  s_5de23ca1c08ccc::t_824d84b36a9a48 4
+  s_5de23ca1c08ccc::t_bcfac3dec1819a 644-674,715-730
+  s_5de23ca1c08ccc::t_b873c07d455c38 869,879,881
+  s_5de23ca1c08ccc::t_544a34ee7ab763 227,230-234,237
+  s_5de23ca1c08ccc::t_e6f9dbc7c2a805 434
+  s_5de23ca1c08ccc::t_63b08fc5c3410a 10,30-67
+  s_5de23ca1c08ccc::t_9c1f5c2a00277c 273-280
+  s_5de23ca1c08ccc::t_7b392ae299619b 675-714
+  s_5de23ca1c08ccc::t_ea0a8d4e9bbd35 840
+  s_5de23ca1c08ccc::t_0d850a788c8837 880
+  s_5de23ca1c08ccc::t_4e8a895c9575b9 168-173,175,177-182,184,186-212
+  s_5de23ca1c08ccc::t_2f9d208fb94edd 69
+src/lib/workouts.js
+  s_5de23ca1c08ccc::t_2f88c21de8f9b6 47,56-67,70-76,79
+  s_5de23ca1c08ccc::t_48b1da17586ea2 22-41
+index.html
+  s_5de23ca1c08ccc::t_e3f39804c12476 16,20-21,23-28
+src/sync/outbox.js
+  s_5de23ca1c08ccc::t_bdaf4576ff1af3 1-2,4-8,10-21,23-39,43,48-50,55,61-62,69,78,83,87,99-101,107-108,113-114
+server/db.js
+  s_5de23ca1c08ccc::t_f5a7eb7cf8c002 8-15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.0",
+  "base_commit_sha": "8acd4359d5efe61c157893c442176d67f6aa4b10",
+  "prompts": {},
+  "humans": {
+    "h_80c9974143c35b": {
+      "author": "divyansh.chaudhary <your-personal@email.com>"
+    }
+  },
+  "sessions": {
+    "s_5de23ca1c08ccc": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "8f194660-bf5e-45b0-a846-f2c5cb8de874",
+        "model": "claude-opus-5"
+      },
+      "human_author": "divyansh.chaudhary <your-personal@email.com>"
+    }
+  }
+}
