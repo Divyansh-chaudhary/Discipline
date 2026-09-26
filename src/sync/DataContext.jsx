@@ -744,11 +744,16 @@ export function DataProvider({ children }) {
   )
 
   const createWorkoutType = useCallback(
-    async (name) => {
+    async (name, splits = []) => {
       const clean = String(name || '').trim()
       if (!clean) return null
       const id = crypto.randomUUID()
-      const row = { id, name: clean, active: typesRef.current.length === 0, splits: [] }
+      const row = {
+        id,
+        name: clean,
+        active: typesRef.current.length === 0,
+        splits: Array.isArray(splits) ? splits : [],
+      }
       await commit(
         { op: 'create', resource: 'workoutTypes', entityId: id, payload: row },
         () => setWorkoutTypes((prev) => [...prev, row].sort(byName)),

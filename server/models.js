@@ -67,12 +67,14 @@ const workoutSchema = new Schema(
     _id: { type: String, required: true },
     userId: { type: String, required: true, index: true },
     date: { type: String, required: true },
+    /** Routine group (split) this session belongs to; null = legacy single session per day. */
+    splitId: { type: String, default: null },
     name: { type: String, default: 'Session' },
     completedAt: { type: Number, default: null },
   },
   { timestamps: true },
 )
-workoutSchema.index({ userId: 1, date: 1 }, { unique: true })
+workoutSchema.index({ userId: 1, date: 1, splitId: 1 }, { unique: true })
 
 const workoutSetSchema = new Schema(
   {

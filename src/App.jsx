@@ -12,14 +12,14 @@ const History = lazy(() => import('./pages/History.jsx').then((m) => ({ default:
 const Path = lazy(() => import('./pages/Path.jsx').then((m) => ({ default: m.Path })))
 const Settings = lazy(() => import('./pages/Settings.jsx').then((m) => ({ default: m.Settings })))
 const Workout = lazy(() => import('./pages/Workout.jsx').then((m) => ({ default: m.Workout })))
-const WorkoutTypes = lazy(() =>
-  import('./pages/WorkoutTypes.jsx').then((m) => ({ default: m.WorkoutTypes })),
+const WorkoutGroup = lazy(() =>
+  import('./pages/WorkoutGroup.jsx').then((m) => ({ default: m.WorkoutGroup })),
 )
-const WorkoutTypeDetail = lazy(() =>
-  import('./pages/WorkoutTypeDetail.jsx').then((m) => ({ default: m.WorkoutTypeDetail })),
+const ExerciseHistory = lazy(() =>
+  import('./pages/ExerciseHistory.jsx').then((m) => ({ default: m.ExerciseHistory })),
 )
-const WorkoutSplitDetail = lazy(() =>
-  import('./pages/WorkoutSplitDetail.jsx').then((m) => ({ default: m.WorkoutSplitDetail })),
+const ExerciseDetail = lazy(() =>
+  import('./pages/ExerciseDetail.jsx').then((m) => ({ default: m.ExerciseDetail })),
 )
 
 function PageFallback({ label = 'Loading…' }) {
@@ -70,9 +70,10 @@ export default function App() {
           <Route path="/" element={<Today />} />
           <Route path="/foods" element={<Foods />} />
           <Route path="/workout" element={<Workout />} />
-          <Route path="/workout/types" element={<WorkoutTypes />} />
-          <Route path="/workout/types/:typeId" element={<WorkoutTypeDetail />} />
-          <Route path="/workout/types/:typeId/splits/:splitId" element={<WorkoutSplitDetail />} />
+          <Route path="/workout/group/:splitId" element={<WorkoutGroup />} />
+          <Route path="/workout/history" element={<ExerciseHistory />} />
+          <Route path="/workout/history/:slug" element={<ExerciseDetail />} />
+          <Route path="/workout/types/*" element={<Navigate to="/workout" replace />} />
           <Route path="/history" element={<History />} />
           <Route path="/path" element={<Path />} />
           <Route path="/settings" element={<Settings />} />

@@ -177,20 +177,34 @@ export async function createLogs(userId, payload) {
   return rows.map((row) => toClient(row))
 }
 
-export async function getOrCreateWorkout(userId, date, name = 'Session', entityId) {
-  const existing = await Workout.findOne({ userId, date })
+function splitQuery(splitId) {
+  if (splitId) return { splitId }
+  return { $or: [{ splitId: null }, { splitId: { $exists: false } }] }
+}
+
+async function workoutsForDate(userId, date) {
+  return Workout.find({ userId, date }).sort({ createdAt: 1 }).lean()
+}
+
+function primaryWorkout(workouts = []) {
+  return workouts.find((row) => !row.splitId) || workouts[0] || null
+}
+
+export async function getOrCreateWorkout(userId, date, name = 'Session', entityId, splitId = null) {
+  const existing = await Workout.findOne({ userId, date, ...splitQuery(splitId) })
   if (existing) return toClient(existing)
   try {
     const created = await Workout.create({
       _id: entityId || newId(),
       userId,
       date,
+      splitId: splitId || null,
       name: name || 'Session',
     })
     return toClient(created)
   } catch (err) {
     if (err?.code === 11000) {
-      const again = await Workout.findOne({ userId, date })
+      const again = await Workout.findOne({ userId, date, ...splitQuery(splitId) })
       if (again) return toClient(again)
     }
     throw err
@@ -204,7 +218,10 @@ export async function updateWorkout(userId, entityId, payload) {
   }
   if (!row) throw Object.assign(new Error('Workout not found'), { status: 404 })
   if (payload.name != null) row.name = String(payload.name).trim() || row.name
-  if (payload.completedAt !== undefined) {
+  if (payload.splitId !== undefined) row.splitId = payload.splitId || null
+  if (payload.completed !== undefined) {
+    row.completedAt = payload.completed ? Number(payload.completedAt) || Date.now() : null
+  } else if (payload.completedAt !== undefined) {
     row.completedAt = payload.completedAt === null ? null : Number(payload.completedAt) || null
   }
   await row.save()
@@ -221,7 +238,10 @@ async function resolveWorkout(userId, payload, entityId) {
     if (byEntity) return byEntity
   }
   if (payload?.date) {
-    return Workout.findOne({ userId, date: payload.date })
+    if (payload.splitId) {
+      return Workout.findOne({ userId, date: payload.date, splitId: payload.splitId })
+    }
+    return Workout.findOne({ userId, date: payload.date, ...splitQuery(null) })
   }
   return null
 }
@@ -363,6 +383,177 @@ export async function setWorkoutCompletion(userId, payload) {
   return toClient(workout)
 }
 
+function exerciseNameSet(names = []) {
+  return new Set(names.map((name) => String(name || '').trim().toLowerCase()).filter(Boolean))
+}
+
+function filterSetsByExercise(sets, names) {
+  const allowed = exerciseNameSet(names)
+  if (!allowed.size) return sets
+  return sets.filter((set) => allowed.has(String(set.exercise || '').toLowerCase()))
+}
+
+/**
+ * Loads one routine group's session for a date. Falls back to a legacy day
+ * session when sets match this group's exercise list.
+ */
+export async function getSplitWorkoutDay(userId, date, splitId, exerciseNames = []) {
+  let workoutDoc = splitId ? await Workout.findOne({ userId, date, splitId }).lean() : null
+  let sets = []
+  let legacy = false
+
+  if (workoutDoc) {
+    sets = await setsForWorkout(userId, String(workoutDoc._id))
+  } else {
+    const legacyDoc = await Workout.findOne({ userId, date, ...splitQuery(null) }).lean()
+    if (legacyDoc) {
+      const legacySets = await setsForWorkout(userId, String(legacyDoc._id))
+      const filtered = filterSetsByExercise(legacySets, exerciseNames)
+      if (filtered.length) {
+        workoutDoc = legacyDoc
+        sets = filtered
+        legacy = true
+      }
+    }
+  }
+
+  const previous = {}
+  for (const name of exerciseNames) {
+    const prior = await getPreviousExerciseSession(userId, name, date)
+    if (prior) previous[name] = prior
+  }
+
+  return {
+    date,
+    splitId,
+    workout: workoutDoc ? toClient(workoutDoc) : null,
+    sets,
+    legacy,
+    previous,
+  }
+}
+
+export async function getPreviousExerciseSession(userId, exercise, beforeDate) {
+  const rows = await WorkoutSet.find({
+    userId,
+    exercise: String(exercise || '').trim(),
+    date: { $lt: beforeDate },
+  })
+    .sort({ date: -1, setNumber: 1, createdAt: 1 })
+    .lean()
+  if (!rows.length) return null
+  const sessionDate = rows[0].date
+  const sets = rows.filter((row) => row.date === sessionDate).map((row) => toClient(row))
+  const top = sets[0]
+  return {
+    date: sessionDate,
+    sets,
+    headline: top ? `${top.weight}kg × ${top.reps}` : null,
+  }
+}
+
+/** Saves every exercise in a routine group with one request. */
+export async function saveSplitSession(userId, payload) {
+  const splitId = payload.splitId || null
+  const date = payload.date
+  const groups = (payload.groups || [])
+    .map((group) => ({ exercise: String(group.exercise || '').trim(), sets: group.sets || [] }))
+    .filter((group) => group.exercise)
+
+  const workout = await getOrCreateWorkout(
+    userId,
+    date,
+    payload.splitName || payload.name || 'Session',
+    payload.workoutId,
+    splitId,
+  )
+
+  if (!groups.length) {
+    return { workout, sets: [], groups: [] }
+  }
+
+  const result = await replaceSessionSets(userId, {
+    workoutId: String(workout.id),
+    date,
+    splitId,
+    groups,
+  })
+  return { workout, ...result }
+}
+
+export async function getSplitLastPerformed(userId, splitIds = []) {
+  const ids = splitIds.filter(Boolean)
+  if (!ids.length) return {}
+  const rows = await Workout.aggregate([
+    { $match: { userId, splitId: { $in: ids } } },
+    { $sort: { date: -1 } },
+    { $group: { _id: '$splitId', date: { $first: '$date' } } },
+  ])
+  const out = {}
+  for (const row of rows) out[row._id] = row.date
+  return out
+}
+
+export async function listExerciseHistory(userId) {
+  const rows = await WorkoutSet.find({ userId }).sort({ date: -1, setNumber: 1 }).lean()
+  const map = new Map()
+  for (const row of rows) {
+    const name = String(row.exercise || '').trim()
+    if (!name) continue
+    const key = name.toLowerCase()
+    if (!map.has(key)) {
+      map.set(key, {
+        name,
+        lastDate: row.date,
+        lastWeight: Number(row.weight) || 0,
+        lastReps: Number(row.reps) || 0,
+        bestWeight: Number(row.weight) || 0,
+        bestReps: Number(row.reps) || 0,
+        bestScore: (Number(row.weight) || 0) * (Number(row.reps) || 0),
+      })
+      continue
+    }
+    const entry = map.get(key)
+    if (row.date > entry.lastDate) {
+      entry.lastDate = row.date
+      entry.lastWeight = Number(row.weight) || 0
+      entry.lastReps = Number(row.reps) || 0
+    }
+    const score = (Number(row.weight) || 0) * (Number(row.reps) || 0)
+    const weight = Number(row.weight) || 0
+    if (weight > entry.bestWeight || (weight === entry.bestWeight && score > entry.bestScore)) {
+      entry.bestWeight = weight
+      entry.bestReps = Number(row.reps) || 0
+      entry.bestScore = score
+    }
+  }
+  return [...map.values()].sort((a, b) => a.name.localeCompare(b.name))
+}
+
+export async function getExerciseProgression(userId, exercise) {
+  const name = String(exercise || '').trim()
+  const rows = await WorkoutSet.find({ userId, exercise: name }).sort({ date: 1, setNumber: 1 }).lean()
+  const byDate = new Map()
+  for (const row of rows) {
+    if (!byDate.has(row.date)) {
+      byDate.set(row.date, { date: row.date, sets: [], maxWeight: 0, totalReps: 0 })
+    }
+    const day = byDate.get(row.date)
+    const weight = Number(row.weight) || 0
+    const reps = Number(row.reps) || 0
+    day.sets.push(toClient(row))
+    day.maxWeight = Math.max(day.maxWeight, weight)
+    day.totalReps += reps
+  }
+  const sessions = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date))
+  return {
+    exercise: name,
+    sessions,
+    weightSeries: sessions.map((session) => ({ date: session.date, value: session.maxWeight })),
+    repsSeries: sessions.map((session) => ({ date: session.date, value: session.totalReps })),
+  }
+}
+
 function normalizePlannedExercises(exercises = []) {
   return exercises
     .map((exercise) => ({
@@ -479,9 +670,15 @@ export async function deleteWorkoutType(userId, entityId) {
 }
 
 export async function getDay(userId, date) {
-  const workoutDoc = await Workout.findOne({ userId, date }).lean()
-  const workout = toClient(workoutDoc)
-  const sets = workout ? await setsForWorkout(userId, workout.id) : []
+  const workouts = await workoutsForDate(userId, date)
+  const primary = primaryWorkout(workouts)
+  const workout = primary ? toClient(primary) : null
+  const workoutIds = workouts.map((row) => String(row._id))
+  const sets = workoutIds.length
+    ? toClientList(
+        await WorkoutSet.find({ userId, workoutId: { $in: workoutIds } }).sort({ createdAt: 1 }).lean(),
+      )
+    : []
   const logs = await logsForDate(userId, date)
   return { date, logs, workout, sets }
 }
@@ -504,7 +701,11 @@ export async function getRange(userId, from, to) {
     return days[date]
   }
 
-  for (const workout of workouts) bucket(workout.date).workout = toClient(workout)
+  for (const workout of workouts) {
+    const day = bucket(workout.date)
+    if (!day.workout) day.workout = toClient(workout)
+    else if (!workout.splitId) day.workout = toClient(workout)
+  }
   for (const log of logs) bucket(log.date).logs.push(toClient(log))
   for (const set of sets) {
     const date = dateByWorkout.get(String(set.workoutId))
@@ -556,7 +757,7 @@ export async function applyMutation(userId, mutation, clientDate) {
   } else if (resource === 'foodLogs' && op === 'delete') {
     entity = await deleteLog(userId, entityId)
   } else if (resource === 'workouts' && op === 'create') {
-    entity = await getOrCreateWorkout(userId, payload.date, payload.name, entityId)
+    entity = await getOrCreateWorkout(userId, payload.date, payload.name, entityId, payload.splitId || null)
   } else if (resource === 'workouts' && op === 'update') {
     entity = await updateWorkout(userId, entityId, payload)
   } else if (resource === 'workoutSets' && op === 'create') {

@@ -12,10 +12,15 @@ import {
   deleteLog,
   deleteSet,
   getDay,
+  getExerciseProgression,
   getOrCreateWorkout,
   getRange,
   getSettings,
+  getSplitLastPerformed,
+  getSplitWorkoutDay,
+  listExerciseHistory,
   listFoods,
+  saveSplitSession,
   updateFood,
   updateSet,
   updateWorkout,
@@ -166,6 +171,67 @@ apiRouter.get('/workouts', async (req, res) => {
     const date = String(req.query.date || localDateKey())
     const day = await getDay(req.userId, date)
     res.json({ workout: day.workout, sets: day.sets })
+  } catch (err) {
+    sendError(res, err)
+  }
+})
+
+apiRouter.get('/workouts/split', async (req, res) => {
+  try {
+    const date = String(req.query.date || localDateKey())
+    const splitId = String(req.query.splitId || '')
+    const exerciseNames = String(req.query.exercises || '')
+      .split(',')
+      .map((name) => name.trim())
+      .filter(Boolean)
+    if (!splitId) {
+      res.status(400).json({ error: 'splitId is required' })
+      return
+    }
+    res.json(await getSplitWorkoutDay(req.userId, date, splitId, exerciseNames))
+  } catch (err) {
+    sendError(res, err)
+  }
+})
+
+apiRouter.post('/workouts/split/save', async (req, res) => {
+  try {
+    const result = await saveSplitSession(req.userId, req.body)
+    const discipline = await syncDiscipline(req.userId, clientDate(req))
+    res.json({ ...result, discipline })
+  } catch (err) {
+    sendError(res, err)
+  }
+})
+
+apiRouter.get('/workouts/splits/last', async (req, res) => {
+  try {
+    const splitIds = String(req.query.splitIds || '')
+      .split(',')
+      .map((id) => id.trim())
+      .filter(Boolean)
+    res.json(await getSplitLastPerformed(req.userId, splitIds))
+  } catch (err) {
+    sendError(res, err)
+  }
+})
+
+apiRouter.get('/exercises/history', async (req, res) => {
+  try {
+    res.json(await listExerciseHistory(req.userId))
+  } catch (err) {
+    sendError(res, err)
+  }
+})
+
+apiRouter.get('/exercises/progression', async (req, res) => {
+  try {
+    const exercise = String(req.query.name || '').trim()
+    if (!exercise) {
+      res.status(400).json({ error: 'Exercise name is required' })
+      return
+    }
+    res.json(await getExerciseProgression(req.userId, exercise))
   } catch (err) {
     sendError(res, err)
   }
