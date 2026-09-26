@@ -1,0 +1,14 @@
+src/pages/Settings.jsx
+  h_80c9974143c35b 1-8,11-18,27,29,33-38,42-45,48-50,52-54,57-61,65-148,165,179,183-187,191-193,195
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "d80bcbf861968c6dbda3d9fbbc9c9e624d4c1865",
+  "prompts": {},
+  "humans": {
+    "h_80c9974143c35b": {
+      "author": "divyansh.chaudhary <your-personal@email.com>"
+    }
+  }
+}
