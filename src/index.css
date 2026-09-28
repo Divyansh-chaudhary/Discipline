@@ -423,6 +423,87 @@ p {
   display: block;
 }
 
+.pantry-picker {
+  display: grid;
+  gap: 10px;
+}
+
+.pantry-row {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--glass);
+  box-shadow: var(--inset);
+}
+
+.pantry-row.selected {
+  border-color: color-mix(in srgb, var(--accent) 48%, var(--line));
+  background: color-mix(in srgb, var(--accent) 10%, var(--glass));
+}
+
+.pantry-choice-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.pantry-picker .pantry-choice .name {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.pantry-macro-preview {
+  display: block;
+  margin-top: 4px;
+}
+
+.pantry-row-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-left: 34px;
+}
+
+.pantry-qty-label {
+  flex-shrink: 0;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.pantry-row-controls .quantity-stepper {
+  flex: 0 1 auto;
+  gap: 0;
+  padding: 1px;
+  border-radius: 9px;
+}
+
+.pantry-row-controls .quantity-stepper button {
+  width: 26px;
+  min-height: 26px;
+  font-size: 15px;
+}
+
+.pantry-row-controls .quantity-stepper input {
+  width: 34px;
+  min-height: 26px;
+  font-size: 13px;
+}
+
+.pantry-row-controls .quantity-unit {
+  padding: 0 5px 0 2px;
+  font-size: 11px;
+  max-width: 4.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .list-link {
   display: grid;
   gap: 2px;
@@ -1238,6 +1319,132 @@ p {
   color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+.session-card {
+  margin-top: 12px;
+}
+
+.session-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.session-done-chip {
+  color: var(--forest);
+  border-color: color-mix(in srgb, var(--forest) 40%, var(--line));
+  background: color-mix(in srgb, var(--forest) 12%, transparent);
+}
+
+.session-empty,
+.diary-empty {
+  margin-top: 10px;
+}
+
+.session-preview {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.session-exercise {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--field-bg) 75%, transparent);
+  border: 1px solid var(--line);
+}
+
+.session-exercise-name {
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.session-exercise-meta {
+  font-size: 12px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.session-more,
+.diary-more {
+  display: block;
+  padding: 8px 2px 0;
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.diary-card {
+  margin-top: 12px;
+}
+
+.diary-preview {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.diary-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--field-bg) 75%, transparent);
+  border: 1px solid var(--line);
+}
+
+.diary-item-copy {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.diary-item-name {
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.diary-remove {
+  flex-shrink: 0;
+  margin-top: -2px;
+}
+
+.log-day-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.log-day-item {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--field-bg) 75%, transparent);
+  border: 1px solid var(--line);
+}
+
+.log-day-name {
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.log-workout-card {
+  margin-top: 14px;
+}
+
+.log-workout-empty {
+  margin-top: 10px;
 }
 
 .dirty-chip {

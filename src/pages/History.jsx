@@ -122,39 +122,40 @@ function DayView({ date, setDate }) {
           {logs.length === 0 ? (
             <div className="empty card">No food logged this day.</div>
           ) : (
-            <div className="list" style={{ marginTop: 12 }}>
+            <div className="log-day-list">
               {logs.map((row) => (
-                <div className="row" key={row.id}>
-                  <div className="grow">
-                    <div className="name">
-                      {row.name}
-                      {row.servings > 1 ? <span className="tiny"> ×{row.servings}</span> : null}
-                    </div>
-                    <div className="meta">{macroSummary(row)}</div>
-                  </div>
+                <div className="log-day-item" key={row.id}>
+                  <span className="log-day-name">
+                    {row.name}
+                    {row.servings > 1 ? <span className="tiny"> ×{row.servings}</span> : null}
+                  </span>
+                  <span className="meta">{macroSummary(row)}</span>
                 </div>
               ))}
             </div>
           )}
 
-          <div className="section-title">
-            <h2>{workout?.name || 'Workout'}</h2>
-            {sets.length ? <span className="tiny">{sets.length} sets</span> : null}
-          </div>
-          {exercises.length === 0 ? (
-            <div className="empty card">No lifts this day.</div>
-          ) : (
-            <section className="card">
-              <div className="summary-lines" style={{ marginTop: 0 }}>
+          <section className="card log-workout-card">
+            <div className="page-head-row">
+              <div>
+                <p className="tiny">Workout</p>
+                <p className="path-count">{workout?.name || 'No session'}</p>
+              </div>
+              {sets.length ? <span className="chip">{sets.length} sets</span> : null}
+            </div>
+            {exercises.length === 0 ? (
+              <p className="sub log-workout-empty">No lifts this day.</p>
+            ) : (
+              <div className="session-preview">
                 {exercises.map((group) => (
-                  <div className="summary-line" key={group.exercise}>
-                    <span>{group.exercise}</span>
-                    <span>{exerciseLine(group.sets)}</span>
+                  <div className="session-exercise" key={group.exercise}>
+                    <span className="session-exercise-name">{group.exercise}</span>
+                    <span className="session-exercise-meta">{exerciseLine(group.sets)}</span>
                   </div>
                 ))}
               </div>
-            </section>
-          )}
+            )}
+          </section>
         </OfflineEmpty>
       )}
     </>

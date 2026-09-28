@@ -200,46 +200,64 @@ export function Today() {
 
       <TodayPathCard pulse={pulse} xp={discipline.profile?.totalXp || 0} streaks={discipline.streaks} />
 
-      <div className="section-title">
-        <h2>Diary</h2>
-        <span className="tiny">{logs.length} item{logs.length === 1 ? '' : 's'}</span>
-      </div>
-
-      {!loaded && !unavailable ? (
-        <div className="inline-loader" style={{ marginBottom: 12 }}>
-          <Spinner size={14} /> Loading diary…
+      <section className="card diary-card">
+        <div className="page-head-row">
+          <div>
+            <p className="tiny">Diary</p>
+            <p className="path-count">{logs.length} item{logs.length === 1 ? '' : 's'} today</p>
+          </div>
+          {logs.length > 4 ? (
+            <Link className="chip" to="/history">
+              All ›
+            </Link>
+          ) : null}
         </div>
-      ) : null}
 
-      <OfflineEmpty loaded={loaded && !unavailable}>
-        {logs.length === 0 ? (
-          <div className="empty card">
-            Nothing logged yet. Add a meal — it saves to your account, or queues if you are offline.
+        {!loaded && !unavailable ? (
+          <div className="inline-loader" style={{ marginTop: 10 }}>
+            <Spinner size={14} /> Loading diary…
           </div>
-        ) : (
-          <div className="list">
-            {logs.map((row) => (
-              <div className="row" key={row.id}>
-                <div className="grow">
-                  <div className="name">
-                    {row.name}
-                    {row.quantity != null ? <span className="tiny"> · {row.quantity} {row.quantityUnit || 'serving'}</span> : row.servings > 1 ? <span className="tiny"> ×{row.servings}</span> : null}
+        ) : null}
+
+        <OfflineEmpty loaded={loaded && !unavailable}>
+          {logs.length === 0 ? (
+            <p className="sub diary-empty">Nothing logged yet. Tap Log food below to add your first meal.</p>
+          ) : (
+            <div className="diary-preview">
+              {logs.slice(0, 4).map((row) => (
+                <div className="diary-item" key={row.id}>
+                  <div className="diary-item-copy">
+                    <span className="diary-item-name">{row.name}</span>
+                    <span className="meta">
+                      {row.quantity != null
+                        ? `${row.quantity} ${row.quantityUnit || 'serving'}`
+                        : row.servings > 1
+                          ? `×${row.servings}`
+                          : '1 serving'}
+                      {' · '}
+                      {macroSummary(row)}
+                    </span>
                   </div>
-                  <div className="meta">{macroSummary(row)}</div>
+                  <button
+                    type="button"
+                    className={`icon-btn diary-remove${removingId === row.id ? ' is-busy' : ''}`}
+                    aria-label={`Remove ${row.name}`}
+                    disabled={Boolean(removingId)}
+                    onClick={() => runRemove(row.id, () => removeLog(date, row.id))}
+                  >
+                    {removingId === row.id ? <Spinner size={12} /> : '✕'}
+                  </button>
                 </div>
-                <button
-                  className={`icon-btn${removingId === row.id ? ' is-busy' : ''}`}
-                  aria-label={`Remove ${row.name}`}
-                  disabled={Boolean(removingId)}
-                  onClick={() => runRemove(row.id, () => removeLog(date, row.id))}
-                >
-                  {removingId === row.id ? <Spinner size={12} /> : '✕'}
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-      </OfflineEmpty>
+              ))}
+              {logs.length > 4 ? (
+                <Link className="diary-more" to="/history">
+                  +{logs.length - 4} more in log
+                </Link>
+              ) : null}
+            </div>
+          )}
+        </OfflineEmpty>
+      </section>
 
       {sheet === 'manual' ? (
         <Sheet
@@ -282,49 +300,61 @@ export function Today() {
           {pantry.length === 0 ? (
             <p className="empty">Save foods under Foods first, then they show up here.</p>
           ) : (
-            <div className="list pantry-picker">
+            <div className="pantry-picker">
               {pantry.map((food) => {
                 const picked = Object.hasOwn(pantrySelection, food.id)
                 return (
-                  <div key={food.id} className={`row${picked ? ' selected' : ''}`}>
+                  <div key={food.id} className={`pantry-row${picked ? ' selected' : ''}`}>
                     <button
-                      className="pantry-choice grow"
+                      type="button"
+                      className="pantry-choice"
                       onClick={() => togglePantryFood(food)}
                       aria-pressed={picked}
                       disabled={pantryBusy}
                     >
                       <span className="check-mark">{picked ? '✓' : ''}</span>
-                      <span className="grow">
+                      <span className="pantry-choice-copy">
                         <span className="name">{food.name}</span>
-                        <span className="meta">Per {referenceQuantity(food)} {referenceUnit(food)} · {fmtCal(food.calories)} kcal</span>
-                        {picked ? <span className="tiny">{macroSummary(pantryTotals(food, pantrySelection[food.id]))}</span> : null}
+                        <span className="meta">
+                          Per {referenceQuantity(food)} {referenceUnit(food)} · {fmtCal(food.calories)} kcal
+                        </span>
+                        {picked ? (
+                          <span className="tiny pantry-macro-preview">
+                            {macroSummary(pantryTotals(food, pantrySelection[food.id]))}
+                          </span>
+                        ) : null}
                       </span>
                     </button>
                     {picked ? (
-                      <div className="quantity-stepper">
-                        <button
-                          aria-label={`Less ${food.name}`}
-                          disabled={pantryBusy || cleanQuantity(pantrySelection[food.id]) <= MIN_QUANTITY}
-                          onClick={() => stepPantryQuantity(food.id, -quantityStep(food))}
-                        >
-                          −
-                        </button>
-                        <input
-                          inputMode="decimal"
-                          aria-label={`Quantity of ${food.name} in ${referenceUnit(food)}`}
-                          value={pantrySelection[food.id]}
-                          disabled={pantryBusy}
-                          onChange={(event) => setPantryQuantity(food.id, event.target.value)}
-                          onBlur={() => commitPantryQuantity(food.id)}
-                        />
-                        <button
-                          aria-label={`More ${food.name}`}
-                          disabled={pantryBusy}
-                          onClick={() => stepPantryQuantity(food.id, quantityStep(food))}
-                        >
-                          +
-                        </button>
-                        <span className="quantity-unit">{referenceUnit(food)}</span>
+                      <div className="pantry-row-controls">
+                        <span className="tiny pantry-qty-label">Amount</span>
+                        <div className="quantity-stepper">
+                          <button
+                            type="button"
+                            aria-label={`Less ${food.name}`}
+                            disabled={pantryBusy || cleanQuantity(pantrySelection[food.id]) <= MIN_QUANTITY}
+                            onClick={() => stepPantryQuantity(food.id, -quantityStep(food))}
+                          >
+                            −
+                          </button>
+                          <input
+                            inputMode="decimal"
+                            aria-label={`Quantity of ${food.name} in ${referenceUnit(food)}`}
+                            value={pantrySelection[food.id]}
+                            disabled={pantryBusy}
+                            onChange={(event) => setPantryQuantity(food.id, event.target.value)}
+                            onBlur={() => commitPantryQuantity(food.id)}
+                          />
+                          <button
+                            type="button"
+                            aria-label={`More ${food.name}`}
+                            disabled={pantryBusy}
+                            onClick={() => stepPantryQuantity(food.id, quantityStep(food))}
+                          >
+                            +
+                          </button>
+                          <span className="quantity-unit">{referenceUnit(food)}</span>
+                        </div>
                       </div>
                     ) : null}
                   </div>
@@ -352,30 +382,28 @@ export function Today() {
 function SessionSummaryCard({ sets, workout }) {
   const { groups, exercises, setCount, volume } = sessionSummary(sets)
   const done = Boolean(workout?.completedAt)
+  const preview = groups.slice(0, 3)
+  const hiddenCount = Math.max(0, groups.length - preview.length)
 
   return (
-    <section className="card" style={{ marginTop: 12 }}>
+    <section className="card session-card">
       <div className="page-head-row">
         <div>
           <p className="tiny">Today’s training</p>
           <p className="path-count">{workout?.name || 'No session'}</p>
         </div>
-        <Link className="chip" to="/workout">
-          {setCount ? 'Open' : 'Start'} ›
-        </Link>
+        <div className="session-head-actions">
+          {done ? <span className="chip inline-chip session-done-chip">Done</span> : null}
+          <Link className="chip" to="/workout">
+            {setCount ? 'Open' : 'Start'} ›
+          </Link>
+        </div>
       </div>
 
       {setCount === 0 ? (
-        <p className="sub" style={{ marginTop: 8 }}>
-          Nothing logged yet today.
-        </p>
+        <p className="sub session-empty">No lifts logged yet. Head to Lift when you are ready.</p>
       ) : (
         <>
-          {done ? (
-            <p className="tiny" style={{ marginTop: 6 }}>
-              Completed
-            </p>
-          ) : null}
           <div className="summary-grid">
             <div className="summary-stat">
               <strong>{exercises}</strong>
@@ -390,13 +418,18 @@ function SessionSummaryCard({ sets, workout }) {
               <span>kg volume</span>
             </div>
           </div>
-          <div className="summary-lines">
-            {groups.map((group) => (
-              <div className="summary-line" key={group.exercise}>
-                <span>{group.exercise}</span>
-                <span>{exerciseLine(group.sets)}</span>
+          <div className="session-preview">
+            {preview.map((group) => (
+              <div className="session-exercise" key={group.exercise}>
+                <span className="session-exercise-name">{group.exercise}</span>
+                <span className="session-exercise-meta">{exerciseLine(group.sets)}</span>
               </div>
             ))}
+            {hiddenCount > 0 ? (
+              <Link className="session-more" to="/workout">
+                +{hiddenCount} more exercise{hiddenCount === 1 ? '' : 's'}
+              </Link>
+            ) : null}
           </div>
         </>
       )}
